@@ -1,0 +1,1 @@
+Aqui van los componentes que componen las vistas y se renderizaran en la vista
