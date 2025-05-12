@@ -1,0 +1,1 @@
+Aqui ira todos los elementos que sean de Zustand que lo que hace zustand es poder compartir informacion entre componentes
