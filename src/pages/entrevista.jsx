@@ -1,7 +1,17 @@
 import React, { useState, useEffect } from "react";
 
+const tecnologias = {
+  Móvil: ["iOS", "Android", "Cordova", "Xamarin", "Ionic"],
+  Frontend: ["HTML5", "CSS3", "Angular", "Bootstrap"],
+  Backend: ["Java", "Spring", "Spring Boot", "REST", ".NET", "AEM"],
+  DevOps: ["Git", "Subversion", "Jira"],
+  Datos: ["Cloudera", "Stratio", "SQL Server", "BizTalk Server"],
+  Empresarial: ["SAP", "Appian", "Salesforce", "SharePoint", "Visual Studio"]
+};
+
 export default function EntrevistaForm() {
   const [fechaActual, setFechaActual] = useState("");
+  const [seleccionadas, setSeleccionadas] = useState([]);
 
   useEffect(() => {
     const hoy = new Date();
@@ -11,62 +21,118 @@ export default function EntrevistaForm() {
     setFechaActual(`${yyyy}-${mm}-${dd}`);
   }, []);
 
+  const toggleTecnologia = (nombre) => {
+    setSeleccionadas((prev) =>
+      prev.includes(nombre)
+        ? prev.filter((t) => t !== nombre)
+        : [...prev, nombre]
+    );
+  };
+
   return (
-    <div className="bg-white text-blue-900 min-h-screen flex flex-col items-center justify-start py-10">
-      <header className="w-full bg-blue-600 text-white py-3">
-        <h1 className="text-center text-xl font-medium">NombreAplicacion</h1>
+    <div className="bg-white text-blue-900 min-h-screen flex flex-col justify-between">
+      {/* HEADER */}
+      <header className="w-full bg-blue-600 text-white py-4 shadow-md">
+        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
+          <h1 className="text-xl font-bold tracking-wide">NombreAplicacion</h1>
+          <nav className="space-x-6 text-sm font-medium">
+            <a href="#entrevista" className="hover:underline">Entrevista</a>
+            <a href="#informe" className="hover:underline">Informe</a>
+          </nav>
+        </div>
       </header>
 
-      <main className="bg-white mt-10 p-8 rounded-2xl shadow-lg w-full max-w-xl border border-blue-200">
-        <h2 className="text-3xl font-semibold text-blue-800 mb-6 text-center">ENTREVISTA</h2>
+      {/* MAIN */}
+      <main className="w-full max-w-4xl mx-auto mt-12 bg-white p-10 rounded-3xl border border-blue-200 shadow-xl">
+        <h2 className="text-4xl font-bold text-center text-blue-800 mb-10">Entrevista Técnica</h2>
 
-        {/* CATEGORÍA */}
-        <div className="mb-6">
-          <label htmlFor="categoria" className="block text-sm font-medium text-blue-800 mb-2">Categoría</label>
-          <select id="categoria" name="categoria" className="block w-full px-4 py-2 border border-blue-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option defaultValue>Selecciona una categoría</option>
-            <option value="java">Java</option>
-            <option value="python">Python</option>
-            <option value="javascript">JavaScript</option>
-            <option value="otros">Otros</option>
-          </select>
-        </div>
+        <form className="space-y-6">
+          {/* CATEGORÍAS DE TECNOLOGÍA */}
+          <div>
+            <label className="block text-sm font-semibold text-blue-800 mb-2">Tecnologías</label>
+            <div className="grid sm:grid-cols-2 gap-6 max-h-80 overflow-y-auto border border-blue-300 rounded-xl p-4 bg-blue-50">
+              {Object.entries(tecnologias).map(([categoria, items]) => (
+                <div key={categoria}>
+                  <p className="font-medium text-blue-700 mb-2">{categoria}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {items.map((nombre) => {
+                      const estaSeleccionada = seleccionadas.includes(nombre);
+                      return (
+                        <button
+                          key={nombre}
+                          type="button"
+                          onClick={() => toggleTecnologia(nombre)}
+                          className={`px-3 py-1 rounded-full text-sm font-medium border transition 
+                            ${estaSeleccionada
+                              ? "bg-blue-600 text-white border-blue-600"
+                              : "bg-white text-blue-700 border-blue-300 hover:bg-blue-100"
+                            }`}
+                        >
+                          {nombre}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-        {/* NIVEL */}
-        <div className="mb-6">
-          <label htmlFor="nivel" className="block text-sm font-medium text-blue-800 mb-2">Nivel</label>
-          <select id="nivel" name="nivel" className="block w-full px-4 py-2 border border-blue-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option defaultValue>Selecciona un nivel</option>
-            <option value="junior">Junior</option>
-            <option value="semi">Semi-Senior</option>
-            <option value="senior">Senior</option>
-          </select>
-        </div>
+          {/* LISTA DE SELECCIONADAS */}
+          {seleccionadas.length > 0 && (
+            <div className="border border-blue-200 bg-white p-4 rounded-xl shadow-sm">
+              <p className="text-sm font-semibold mb-2 text-blue-800">Tecnologías seleccionadas:</p>
+              <div className="flex flex-wrap gap-2">
+                {seleccionadas.map((tec) => (
+                  <span key={tec} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                    {tec}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
-        {/* ENTREVISTADOR */}
-        <div className="mb-6">
-          <label htmlFor="nombreentrevistador" className="block text-sm font-medium text-blue-800 mb-2">Nombre del entrevistador</label>
-          <input type="text" name="nombreentrevistador" id="nombreentrevistador" className="w-full px-4 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
+          {/* OTROS CAMPOS */}
+          <div>
+            <label htmlFor="nivel" className="block text-sm font-semibold text-blue-800 mb-1">Nivel</label>
+            <select id="nivel" name="nivel" className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 transition">
+              <option defaultValue>Selecciona un nivel</option>
+              <option value="junior">Junior</option>
+              <option value="semi">Semi-Senior</option>
+              <option value="senior">Senior</option>
+            </select>
+          </div>
 
-        {/* ENTREVISTADO */}
-        <div className="mb-6">
-          <label htmlFor="nombreentrevistado" className="block text-sm font-medium text-blue-800 mb-2">Nombre del entrevistado</label>
-          <input type="text" name="nombreentrevistado" id="nombreentrevistado" className="w-full px-4 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
+          <div>
+            <label htmlFor="nombreentrevistador" className="block text-sm font-semibold text-blue-800 mb-1">Nombre del entrevistador</label>
+            <input type="text" id="nombreentrevistador" name="nombreentrevistador" className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 transition" />
+          </div>
 
-        {/* FECHA */}
-        <div className="mb-6">
-          <label htmlFor="fecha" className="block text-sm font-medium text-blue-800 mb-2">Fecha</label>
-          <input type="date" name="fecha" id="fecha" value={fechaActual} className="w-full px-4 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" readOnly />
-        </div>
+          <div>
+            <label htmlFor="nombrecandidato" className="block text-sm font-semibold text-blue-800 mb-1">Nombre del candidato</label>
+            <input type="text" id="nombrecandidato" name="nombrecandidato" className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 transition" />
+          </div>
 
-        <div className="text-center">
-          <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg shadow-md transition duration-200">
-            Enviar
-          </button>
-        </div>
+          <div>
+            <label htmlFor="fecha" className="block text-sm font-semibold text-blue-800 mb-1">Fecha</label>
+            <input type="date" id="fecha" name="fecha" value={fechaActual} readOnly className="w-full px-4 py-3 border border-blue-300 rounded-xl bg-blue-50 text-blue-700 cursor-not-allowed" />
+          </div>
+
+          <div className="pt-4 text-center">
+            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold px-8 py-3 rounded-xl shadow-lg transition duration-300">
+              Enviar entrevista
+            </button>
+          </div>
+        </form>
       </main>
+
+      {/* FOOTER */}
+      <footer className="w-full bg-blue-600 text-white py-4 mt-12">
+        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center text-sm">
+          <span>© 2025 NombreAplicacion. Todos los derechos reservados.</span>
+          <div className="mt-2 sm:mt-0">Contacto: soporte@nombreaplicacion.com</div>
+        </div>
+      </footer>
     </div>
   );
 }
