@@ -12,6 +12,8 @@ const tecnologias = {
 export default function EntrevistaForm() {
   const [fechaActual, setFechaActual] = useState("");
   const [seleccionadas, setSeleccionadas] = useState([]);
+  const [nivel, setNivel] = useState("");
+  const [placeholderExperiencia, setPlaceholderExperiencia] = useState("");
 
   useEffect(() => {
     const hoy = new Date();
@@ -21,12 +23,30 @@ export default function EntrevistaForm() {
     setFechaActual(`${yyyy}-${mm}-${dd}`);
   }, []);
 
+  useEffect(() => {
+    switch (nivel) {
+      case "junior":
+        setPlaceholderExperiencia("0 a 2 años");
+        break;
+      case "semi":
+        setPlaceholderExperiencia("2 a 5 años");
+        break;
+      case "senior":
+        setPlaceholderExperiencia("Más de 5 años");
+        break;
+      default:
+        setPlaceholderExperiencia("");
+    }
+  }, [nivel]);
+
   const toggleTecnologia = (nombre) => {
     setSeleccionadas((prev) =>
-      prev.includes(nombre)
-        ? prev.filter((t) => t !== nombre)
-        : [...prev, nombre]
+      prev.includes(nombre) ? prev.filter((t) => t !== nombre) : [...prev, nombre]
     );
+  };
+
+  const deseleccionarTodo = () => {
+    setSeleccionadas([]);
   };
 
   return (
@@ -47,6 +67,20 @@ export default function EntrevistaForm() {
         <h2 className="text-4xl font-bold text-center text-blue-800 mb-10">Entrevista Técnica</h2>
 
         <form className="space-y-6">
+            
+          {/* NOMBRE ENTREVISTADOR */}
+          <div>
+            <label htmlFor="nombreentrevistador" className="block text-sm font-semibold text-blue-800 mb-1">Nombre del entrevistador</label>
+            <input type="text" id="nombreentrevistador" name="nombreentrevistador" className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 transition" />
+          </div>
+
+          {/* NOMBRE CANDIDATO */}
+          <div>
+            <label htmlFor="nombrecandidato" className="block text-sm font-semibold text-blue-800 mb-1">Nombre del candidato</label>
+            <input type="text" id="nombrecandidato" name="nombrecandidato" className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 transition" />
+          </div>
+
+        
           {/* CATEGORÍAS DE TECNOLOGÍA */}
           <div>
             <label className="block text-sm font-semibold text-blue-800 mb-2">Tecnologías</label>
@@ -78,10 +112,19 @@ export default function EntrevistaForm() {
             </div>
           </div>
 
-          {/* LISTA DE SELECCIONADAS */}
+          {/* LISTA DE SELECCIONADAS + DESELECCIONAR */}
           {seleccionadas.length > 0 && (
             <div className="border border-blue-200 bg-white p-4 rounded-xl shadow-sm">
-              <p className="text-sm font-semibold mb-2 text-blue-800">Tecnologías seleccionadas:</p>
+              <div className="flex justify-between items-center mb-2">
+                <p className="text-sm font-semibold text-blue-800">Tecnologías seleccionadas:</p>
+                <button
+                  type="button"
+                  onClick={deseleccionarTodo}
+                  className="text-sm text-red-600 hover:underline"
+                >
+                  Deseleccionar todo
+                </button>
+              </div>
               <div className="flex flex-wrap gap-2">
                 {seleccionadas.map((tec) => (
                   <span key={tec} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -92,27 +135,37 @@ export default function EntrevistaForm() {
             </div>
           )}
 
-          {/* OTROS CAMPOS */}
+          {/* NIVEL */}
           <div>
             <label htmlFor="nivel" className="block text-sm font-semibold text-blue-800 mb-1">Nivel</label>
-            <select id="nivel" name="nivel" className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 transition">
-              <option defaultValue>Selecciona un nivel</option>
+            <select
+              id="nivel"
+              name="nivel"
+              value={nivel}
+              onChange={(e) => setNivel(e.target.value)}
+              className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 transition"
+            >
+              <option value="">Selecciona un nivel</option>
               <option value="junior">Junior</option>
               <option value="semi">Semi-Senior</option>
               <option value="senior">Senior</option>
             </select>
           </div>
 
+          {/* AÑOS DE EXPERIENCIA */}
           <div>
-            <label htmlFor="nombreentrevistador" className="block text-sm font-semibold text-blue-800 mb-1">Nombre del entrevistador</label>
-            <input type="text" id="nombreentrevistador" name="nombreentrevistador" className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 transition" />
+            <label htmlFor="experiencia" className="block text-sm font-semibold text-blue-800 mb-1">Años de experiencia</label>
+            <input
+              type="text"
+              id="experiencia"
+              name="experiencia"
+              placeholder={placeholderExperiencia}
+              className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 transition"
+            />
           </div>
 
-          <div>
-            <label htmlFor="nombrecandidato" className="block text-sm font-semibold text-blue-800 mb-1">Nombre del candidato</label>
-            <input type="text" id="nombrecandidato" name="nombrecandidato" className="w-full px-4 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 transition" />
-          </div>
 
+          {/* FECHA */}
           <div>
             <label htmlFor="fecha" className="block text-sm font-semibold text-blue-800 mb-1">Fecha</label>
             <input type="date" id="fecha" name="fecha" value={fechaActual} readOnly className="w-full px-4 py-3 border border-blue-300 rounded-xl bg-blue-50 text-blue-700 cursor-not-allowed" />
