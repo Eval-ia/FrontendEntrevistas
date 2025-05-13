@@ -1,17 +1,14 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-// import './App.css'
-import './index.css'
-import EntrevistaForm from './pages/entrevista'
+import { Routes, Route } from 'react-router-dom';
+import EntrevistaForm from './pages/entrevista';
+import Preguntas from './pages/preguntas'; // Asegúrate de tener este archivo
 
 function App() {
   return (
-    <>
-      <EntrevistaForm />
-    </>
-  )
+    <Routes>
+      <Route path="/" element={<EntrevistaForm />} />
+      <Route path="/preguntas" element={<Preguntas />} />
+    </Routes>
+  );
 }
 
-
-export default App
+export default App;
