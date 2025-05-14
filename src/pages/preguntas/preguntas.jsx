@@ -1,30 +1,82 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from "../../components/general/Header";
 import Footer from "../../components/general/Footer";
 
 export default function PreguntasFormulario() {
+  const [preguntasGenericas, setPreguntasGenericas] = useState([]);
+  const [preguntasEspecificas, setPreguntasEspecificas] = useState([]); // ✅ NUEVO
   const [preguntasExtra, setPreguntasExtra] = useState([]);
   const [nuevaPregunta, setNuevaPregunta] = useState('');
   const [contadorExtra, setContadorExtra] = useState(1);
 
-  const handleAgregarPregunta = (e) => {
+  useEffect(() => {
+    const fetchPreguntas = async () => {
+      try {
+        const respGenericas = await fetch("http://localhost:8080/api/preguntas");
+        if (!respGenericas.ok) throw new Error("Error al obtener preguntas genéricas");
+        const dataGenericas = await respGenericas.json();
+        const formateadasGenericas = dataGenericas
+          .filter(p => p.esGenerica)
+          .map((p, index) => ({
+            id: `generica${index + 1}`,
+            label: p.texto,
+            value: "",
+          }));
+        setPreguntasGenericas(formateadasGenericas);
+
+        const respEspecificas = await fetch("http://localhost:8080/api/preguntas/puesto/1");
+        if (!respEspecificas.ok) throw new Error("Error al obtener preguntas específicas");
+        const dataEspecificas = await respEspecificas.json();
+        const formateadasEspecificas = dataEspecificas.map((p, index) => ({
+          id: `especifica${index + 1}`,
+          label: p.texto,
+          value: "",
+        }));
+        setPreguntasEspecificas(formateadasEspecificas);
+      } catch (error) {
+        console.error("❌ Error al cargar preguntas:", error);
+      }
+    };
+
+    fetchPreguntas();
+  }, []);
+
+  const handleAgregarPregunta = async (e) => {
     e.preventDefault();
     const texto = nuevaPregunta.trim();
     if (!texto) return;
 
-    const nueva = {
-      id: `preguntaExtra${contadorExtra}`,
-      label: texto,
-      value: '',
-    };
+    try {
+      const response = await fetch("http://localhost:8080/api/preguntas/personalizada", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ texto }),
+      });
 
-    setPreguntasExtra([...preguntasExtra, nueva]);
-    setContadorExtra(contadorExtra + 1);
-    setNuevaPregunta('');
+      if (!response.ok) throw new Error("Error al guardar la pregunta");
+
+      const data = await response.json();
+      console.log("✅ Pregunta guardada:", data);
+
+      const nueva = {
+        id: `preguntaExtra${contadorExtra}`,
+        label: texto,
+        value: "",
+      };
+
+      setPreguntasExtra([...preguntasExtra, nueva]);
+      setContadorExtra(contadorExtra + 1);
+      setNuevaPregunta("");
+    } catch (error) {
+      console.error("❌ Error al guardar en el backend:", error);
+      alert("No se pudo guardar la pregunta.");
+    }
   };
 
-  const handleInputChange = (id, value) => {
-    setPreguntasExtra((prev) =>
+  const handleInputChange = (id, value, setStateFn) => {
+    setStateFn((prev) =>
       prev.map((pregunta) => (pregunta.id === id ? { ...pregunta, value } : pregunta))
     );
   };
@@ -37,26 +89,23 @@ export default function PreguntasFormulario() {
           <h1 className="text-4xl font-extrabold text-blue-800 text-center mb-10 tracking-tight">Entrevista Técnica</h1>
 
           <form className="space-y-10">
-            <Section title="Preguntas Genéricas" prefix="pregunta" />
-            <Section title="Preguntas Específicas" prefix="preguntaEspecifica" />
+            <Section
+              title="Preguntas Genéricas"
+              preguntas={preguntasGenericas}
+              onInputChange={(id, value) => handleInputChange(id, value, setPreguntasGenericas)}
+            />
 
-            <section className="space-y-6">
-              {preguntasExtra.map((pregunta) => (
-                <div key={pregunta.id}>
-                  <label htmlFor={pregunta.id} className="block text-sm font-semibold text-blue-800 mb-2">
-                    {pregunta.label}
-                  </label>
-                  <input
-                    type="text"
-                    id={pregunta.id}
-                    name={pregunta.id}
-                    value={pregunta.value}
-                    onChange={(e) => handleInputChange(pregunta.id, e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 transition"
-                  />
-                </div>
-              ))}
-            </section>
+            <Section
+              title="Preguntas Específicas (Puesto 1)"
+              preguntas={preguntasEspecificas}
+              onInputChange={(id, value) => handleInputChange(id, value, setPreguntasEspecificas)}
+            />
+
+            <Section
+              title="Preguntas Personalizadas"
+              preguntas={preguntasExtra}
+              onInputChange={(id, value) => handleInputChange(id, value, setPreguntasExtra)}
+            />
 
             <div className="text-center mt-10">
               <button
@@ -94,20 +143,22 @@ export default function PreguntasFormulario() {
   );
 }
 
-function Section({ title, prefix }) {
+function Section({ title, preguntas, onInputChange }) {
   return (
     <section>
       <h2 className="text-2xl font-semibold mb-6 text-blue-600">{title}</h2>
       <div className="grid gap-6">
-        {[1, 2, 3, 4].map((num) => (
-          <div key={`${prefix}${num}`}>
-            <label htmlFor={`${prefix}${num}`} className="block text-sm font-semibold text-blue-800 mb-2">
-              {`${title.slice(0, -1)} ${num}`}
+        {preguntas.map((pregunta) => (
+          <div key={pregunta.id}>
+            <label htmlFor={pregunta.id} className="block text-sm font-semibold text-blue-800 mb-2">
+              {pregunta.label}
             </label>
             <input
               type="text"
-              id={`${prefix}${num}`}
-              name={`${prefix}${num}`}
+              id={pregunta.id}
+              name={pregunta.id}
+              value={pregunta.value}
+              onChange={(e) => onInputChange(pregunta.id, e.target.value)}
               className="w-full px-4 py-3 border-2 border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 transition"
             />
           </div>

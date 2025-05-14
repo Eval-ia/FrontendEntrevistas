@@ -14,10 +14,15 @@ const tecnologias = {
 
 export default function EntrevistaForm() {
   const navigate = useNavigate();
+
   const [fechaActual, setFechaActual] = useState("");
-  const [seleccionadas, setSeleccionadas] = useState([]);
+  const [tecnologiaSeleccionada, setTecnologiaSeleccionada] = useState(null);
   const [nivel, setNivel] = useState("");
   const [placeholderExperiencia, setPlaceholderExperiencia] = useState("");
+
+  const [nombreEntrevistador, setNombreEntrevistador] = useState("");
+  const [nombreCandidato, setNombreCandidato] = useState("");
+  const [aniosExperiencia, setAniosExperiencia] = useState("");
 
   useEffect(() => {
     const hoy = new Date();
@@ -43,17 +48,54 @@ export default function EntrevistaForm() {
     }
   }, [nivel]);
 
-  const toggleTecnologia = (nombre) => {
-    setSeleccionadas((prev) =>
-      prev.includes(nombre) ? prev.filter((t) => t !== nombre) : [...prev, nombre]
+  const seleccionarTecnologia = (nombre) => {
+    setTecnologiaSeleccionada((prev) => (prev === nombre ? null : nombre));
+  };
+
+  const deseleccionarTodo = () => setTecnologiaSeleccionada(null);
+
+  const estaFormularioCompleto = () => {
+    return (
+      nombreEntrevistador.trim() !== "" &&
+      nombreCandidato.trim() !== "" &&
+      nivel !== "" &&
+      aniosExperiencia.trim() !== "" &&
+      tecnologiaSeleccionada !== null
     );
   };
 
-  const deseleccionarTodo = () => setSeleccionadas([]);
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    navigate("/preguntas");
+
+    const datos = {
+      nombreEntrevistador,
+      nombreCandidato,
+      nivel,
+      aniosExperiencia: parseInt(aniosExperiencia),
+      fecha: fechaActual,
+      tecnologias: tecnologiaSeleccionada ? [tecnologiaSeleccionada] : []
+    };
+
+    try {
+      const response = await fetch("http://localhost:8080/api/entrevistas", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(datos)
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al guardar la entrevista");
+      }
+
+      const resultado = await response.json();
+      console.log("✅ Entrevista guardada:", resultado);
+      navigate("/preguntas");
+    } catch (error) {
+      console.error("❌ Error al enviar los datos:", error);
+      alert("No se pudo guardar la entrevista");
+    }
   };
 
   return (
@@ -63,8 +105,8 @@ export default function EntrevistaForm() {
         <h2 className="text-4xl font-extrabold text-center text-blue-800 mb-10 tracking-tight">Entrevista Técnica</h2>
 
         <form className="space-y-8" onSubmit={handleSubmit}>
-          <InputBlock id="nombreentrevistador" label="Nombre del entrevistador" />
-          <InputBlock id="nombrecandidato" label="Nombre del candidato" />
+          <InputBlock id="nombreentrevistador" label="Nombre del entrevistador" value={nombreEntrevistador} onChange={e => setNombreEntrevistador(e.target.value)} />
+          <InputBlock id="nombrecandidato" label="Nombre del candidato" value={nombreCandidato} onChange={e => setNombreCandidato(e.target.value)} />
 
           <div>
             <label className="block text-sm font-semibold mb-2">Tecnologías</label>
@@ -74,17 +116,21 @@ export default function EntrevistaForm() {
                   <p className="font-medium mb-2">{categoria}</p>
                   <div className="flex flex-wrap gap-2">
                     {items.map((nombre) => {
-                      const estaSeleccionada = seleccionadas.includes(nombre);
+                      const estaSeleccionada = tecnologiaSeleccionada === nombre;
+                      const hayUnaSeleccionada = tecnologiaSeleccionada !== null;
                       return (
                         <button
                           key={nombre}
                           type="button"
-                          onClick={() => toggleTecnologia(nombre)}
+                          onClick={() => seleccionarTecnologia(nombre)}
                           className={`px-3 py-1 rounded-full text-sm font-medium border transition shadow-sm ${
                             estaSeleccionada
                               ? "bg-blue-600 text-white border-blue-600"
+                              : hayUnaSeleccionada
+                              ? "bg-gray-200 text-gray-500 border-gray-300 cursor-not-allowed"
                               : "bg-white text-blue-700 border-blue-300 hover:bg-blue-100"
                           }`}
+                          disabled={hayUnaSeleccionada && !estaSeleccionada}
                         >
                           {nombre}
                         </button>
@@ -96,21 +142,17 @@ export default function EntrevistaForm() {
             </div>
           </div>
 
-          {seleccionadas.length > 0 && (
+          {tecnologiaSeleccionada && (
             <div className="bg-white/60 p-4 rounded-xl border border-blue-200 shadow">
               <div className="flex justify-between mb-2">
-                <p className="text-sm font-semibold">Tecnologías seleccionadas:</p>
+                <p className="text-sm font-semibold">Tecnología seleccionada:</p>
                 <button type="button" onClick={deseleccionarTodo} className="text-sm text-red-600 hover:underline">
-                  Deseleccionar todo
+                  Deseleccionar
                 </button>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {seleccionadas.map((tec) => (
-                  <span key={tec} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                    {tec}
-                  </span>
-                ))}
-              </div>
+              <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                {tecnologiaSeleccionada}
+              </span>
             </div>
           )}
 
@@ -127,12 +169,33 @@ export default function EntrevistaForm() {
             ]}
           />
 
-          <InputBlock id="experiencia" label="Años de experiencia" placeholder={placeholderExperiencia} />
-          <InputBlock id="fecha" label="Fecha" value={fechaActual} readOnly extraClass="bg-blue-50 text-blue-700 cursor-not-allowed" />
+          <InputBlock
+            id="experiencia"
+            label="Años de experiencia"
+            placeholder={placeholderExperiencia}
+            value={aniosExperiencia}
+            onChange={(e) => setAniosExperiencia(e.target.value)}
+          />
+
+          <InputBlock
+            id="fecha"
+            label="Fecha"
+            value={fechaActual}
+            readOnly
+            extraClass="bg-blue-50 text-blue-700 cursor-not-allowed"
+          />
 
           <div className="text-center pt-4">
-            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold px-8 py-3 rounded-xl shadow-xl transition-transform transform hover:scale-105">
-              Enviar entrevista
+            <button
+              type="submit"
+              disabled={!estaFormularioCompleto()}
+              className={`text-lg font-semibold px-8 py-3 rounded-xl shadow-xl transition-transform transform ${
+                estaFormularioCompleto()
+                  ? "bg-blue-600 text-white hover:bg-blue-700 hover:scale-105"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
+              }`}
+            >
+              Siguiente
             </button>
           </div>
         </form>
@@ -142,18 +205,18 @@ export default function EntrevistaForm() {
   );
 }
 
-function InputBlock({ id, label, placeholder = "", value, readOnly = false, extraClass = "" }) {
+// Reutilizables
+function InputBlock({ id, label, value, onChange, placeholder = "", readOnly = false, extraClass = "" }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-semibold mb-1">
-        {label}
-      </label>
+      <label htmlFor={id} className="block text-sm font-semibold mb-1">{label}</label>
       <input
         type="text"
         id={id}
         name={id}
-        placeholder={placeholder}
         value={value}
+        placeholder={placeholder}
+        onChange={onChange}
         readOnly={readOnly}
         className={`w-full px-4 py-3 border-2 border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition ${extraClass}`}
       />
@@ -164,9 +227,7 @@ function InputBlock({ id, label, placeholder = "", value, readOnly = false, extr
 function SelectBlock({ id, label, value, onChange, options }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-semibold mb-1">
-        {label}
-      </label>
+      <label htmlFor={id} className="block text-sm font-semibold mb-1">{label}</label>
       <select
         id={id}
         name={id}
@@ -175,9 +236,7 @@ function SelectBlock({ id, label, value, onChange, options }) {
         className="w-full px-4 py-3 border-2 border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
       >
         {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
         ))}
       </select>
     </div>
