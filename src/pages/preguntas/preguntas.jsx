@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
+import Header from "../../components/general/Header";
+import Footer from "../../components/general/Footer";
 
 export default function PreguntasFormulario() {
   const [preguntasExtra, setPreguntasExtra] = useState([]);
