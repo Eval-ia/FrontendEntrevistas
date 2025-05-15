@@ -1,6 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
-import EntrevistaForm from './pages/entrevista';
-import Preguntas from './pages/preguntas'; // Asegúrate de tener este archivo
+import EntrevistaForm from './pages/entrevista/entrevista';
+import Preguntas from './pages/preguntas/preguntas'; // Asegúrate de tener este archivo
 
 function App() {
   return (
