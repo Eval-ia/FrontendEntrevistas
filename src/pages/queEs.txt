@@ -1,1 +1,0 @@
-Aqui van las vistas que sean completas y no llevan componentes
