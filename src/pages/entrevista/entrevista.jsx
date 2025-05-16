@@ -67,34 +67,31 @@ export default function EntrevistaForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const datos = {
-      nombreEntrevistador,
-      nombreCandidato,
-      nivel,
-      aniosExperiencia: parseInt(aniosExperiencia),
-      fecha: fechaActual,
-      tecnologias: tecnologiaSeleccionada ? [tecnologiaSeleccionada] : []
-    };
-
     try {
-      const response = await fetch("http://localhost:8080/api/entrevistas", {
+      const filtro = {
+        nivel,
+        tecnologia: tecnologiaSeleccionada
+      };
+
+      const resPuesto = await fetch("http://localhost:8080/api/puestos/buscar", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(datos)
+        body: JSON.stringify(filtro)
       });
 
-      if (!response.ok) {
-        throw new Error("Error al guardar la entrevista");
+      if (!resPuesto.ok) {
+        throw new Error("No se encontró un puesto compatible");
       }
 
-      const resultado = await response.json();
-      console.log("✅ Entrevista guardada:", resultado);
-      navigate("/preguntas");
+      const puestoId = await resPuesto.json();
+      console.log("ID del puesto:", puestoId);
+
+      navigate(`/preguntas?puestoId=${puestoId}`);
     } catch (error) {
-      console.error("❌ Error al enviar los datos:", error);
-      alert("No se pudo guardar la entrevista");
+      console.error("Error al buscar el puesto:", error);
+      alert("No se pudo encontrar un puesto de trabajo con esos datos.");
     }
   };
 
@@ -144,9 +141,13 @@ export default function EntrevistaForm() {
 
           {tecnologiaSeleccionada && (
             <div className="bg-white/60 p-4 rounded-xl border border-blue-200 shadow">
-              <div className="flex justify-between mb-2">
+              <div className="flex justify-between mb-2 items-center">
                 <p className="text-sm font-semibold">Tecnología seleccionada:</p>
-                <button type="button" onClick={deseleccionarTodo} className="text-sm text-red-600 hover:underline">
+                <button
+                  type="button"
+                  onClick={deseleccionarTodo}
+                  className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium hover:bg-red-200 transition-colors"
+                >
                   Deseleccionar
                 </button>
               </div>
@@ -205,7 +206,6 @@ export default function EntrevistaForm() {
   );
 }
 
-// Reutilizables
 function InputBlock({ id, label, value, onChange, placeholder = "", readOnly = false, extraClass = "" }) {
   return (
     <div>

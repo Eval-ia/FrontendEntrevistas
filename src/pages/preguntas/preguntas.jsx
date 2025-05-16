@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import Header from "../../components/general/Header";
 import Footer from "../../components/general/Footer";
 
 export default function PreguntasFormulario() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const puestoId = searchParams.get("puestoId");
+
   const [preguntasGenericas, setPreguntasGenericas] = useState([]);
-  const [preguntasEspecificas, setPreguntasEspecificas] = useState([]); // ✅ NUEVO
+  const [preguntasEspecificas, setPreguntasEspecificas] = useState([]);
   const [preguntasExtra, setPreguntasExtra] = useState([]);
   const [nuevaPregunta, setNuevaPregunta] = useState('');
   const [contadorExtra, setContadorExtra] = useState(1);
 
   useEffect(() => {
+    const respuestasGuardadas = location.state?.respuestas;
+
     const fetchPreguntas = async () => {
       try {
         const respGenericas = await fetch("http://localhost:8080/api/preguntas");
@@ -22,24 +30,39 @@ export default function PreguntasFormulario() {
             label: p.texto,
             value: "",
           }));
-        setPreguntasGenericas(formateadasGenericas);
 
-        const respEspecificas = await fetch("http://localhost:8080/api/preguntas/puesto/1");
-        if (!respEspecificas.ok) throw new Error("Error al obtener preguntas específicas");
-        const dataEspecificas = await respEspecificas.json();
-        const formateadasEspecificas = dataEspecificas.map((p, index) => ({
-          id: `especifica${index + 1}`,
-          label: p.texto,
-          value: "",
-        }));
-        setPreguntasEspecificas(formateadasEspecificas);
+        let formateadasEspecificas = [];
+        if (puestoId) {
+          const respEspecificas = await fetch(`http://localhost:8080/api/preguntas/puesto/${puestoId}`);
+          if (!respEspecificas.ok) throw new Error("Error al obtener preguntas específicas");
+          const dataEspecificas = await respEspecificas.json();
+          formateadasEspecificas = dataEspecificas.map((p, index) => ({
+            id: `especifica${index + 1}`,
+            label: p.texto,
+            value: "",
+          }));
+        }
+
+        if (respuestasGuardadas) {
+          const genericas = respuestasGuardadas.filter(r => r.id.startsWith("generica"));
+          const especificas = respuestasGuardadas.filter(r => r.id.startsWith("especifica"));
+          const extra = respuestasGuardadas.filter(r => r.id.startsWith("preguntaExtra"));
+
+          setPreguntasGenericas(genericas.length ? genericas : formateadasGenericas);
+          setPreguntasEspecificas(especificas.length ? especificas : formateadasEspecificas);
+          setPreguntasExtra(extra);
+          setContadorExtra(extra.length + 1);
+        } else {
+          setPreguntasGenericas(formateadasGenericas);
+          setPreguntasEspecificas(formateadasEspecificas);
+        }
       } catch (error) {
         console.error("❌ Error al cargar preguntas:", error);
       }
     };
 
     fetchPreguntas();
-  }, []);
+  }, [puestoId, location.state]);
 
   const handleAgregarPregunta = async (e) => {
     e.preventDefault();
@@ -57,9 +80,6 @@ export default function PreguntasFormulario() {
 
       if (!response.ok) throw new Error("Error al guardar la pregunta");
 
-      const data = await response.json();
-      console.log("✅ Pregunta guardada:", data);
-
       const nueva = {
         id: `preguntaExtra${contadorExtra}`,
         label: texto,
@@ -70,9 +90,13 @@ export default function PreguntasFormulario() {
       setContadorExtra(contadorExtra + 1);
       setNuevaPregunta("");
     } catch (error) {
-      console.error("❌ Error al guardar en el backend:", error);
+      console.error("Error al guardar en el backend:", error);
       alert("No se pudo guardar la pregunta.");
     }
+  };
+
+  const handleEliminarPreguntaExtra = (id) => {
+    setPreguntasExtra((prev) => prev.filter((pregunta) => pregunta.id !== id));
   };
 
   const handleInputChange = (id, value, setStateFn) => {
@@ -81,14 +105,26 @@ export default function PreguntasFormulario() {
     );
   };
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const respuestas = [
+      ...preguntasGenericas,
+      ...preguntasEspecificas,
+      ...preguntasExtra,
+    ];
+    navigate("/respuestas", { state: { respuestas } });
+  };
+
   return (
     <div className="bg-gradient-to-br from-blue-50 to-white min-h-screen flex flex-col font-sans text-blue-900">
       <Header />
       <main className="flex-grow container mx-auto px-4 py-12">
         <div className="bg-white/70 shadow-2xl rounded-3xl p-10 max-w-4xl mx-auto border border-blue-200 backdrop-blur-md">
-          <h1 className="text-4xl font-extrabold text-blue-800 text-center mb-10 tracking-tight">Entrevista Técnica</h1>
+          <h1 className="text-4xl font-extrabold text-blue-800 text-center mb-10 tracking-tight">
+            Entrevista Técnica
+          </h1>
 
-          <form className="space-y-10">
+          <form className="space-y-10" onSubmit={handleSubmit}>
             <Section
               title="Preguntas Genéricas"
               preguntas={preguntasGenericas}
@@ -96,7 +132,7 @@ export default function PreguntasFormulario() {
             />
 
             <Section
-              title="Preguntas Específicas (Puesto 1)"
+              title={`Preguntas Específicas ${puestoId ? `(Puesto ${puestoId})` : "(Puesto no especificado)"}`}
               preguntas={preguntasEspecificas}
               onInputChange={(id, value) => handleInputChange(id, value, setPreguntasEspecificas)}
             />
@@ -105,6 +141,7 @@ export default function PreguntasFormulario() {
               title="Preguntas Personalizadas"
               preguntas={preguntasExtra}
               onInputChange={(id, value) => handleInputChange(id, value, setPreguntasExtra)}
+              onEliminar={handleEliminarPreguntaExtra}
             />
 
             <div className="text-center mt-10">
@@ -143,13 +180,13 @@ export default function PreguntasFormulario() {
   );
 }
 
-function Section({ title, preguntas, onInputChange }) {
+function Section({ title, preguntas, onInputChange, onEliminar }) {
   return (
     <section>
       <h2 className="text-2xl font-semibold mb-6 text-blue-600">{title}</h2>
       <div className="grid gap-6">
         {preguntas.map((pregunta) => (
-          <div key={pregunta.id}>
+          <div key={pregunta.id} className="relative">
             <label htmlFor={pregunta.id} className="block text-sm font-semibold text-blue-800 mb-2">
               {pregunta.label}
             </label>
@@ -161,6 +198,16 @@ function Section({ title, preguntas, onInputChange }) {
               onChange={(e) => onInputChange(pregunta.id, e.target.value)}
               className="w-full px-4 py-3 border-2 border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 transition"
             />
+            {onEliminar && (
+              <button
+                type="button"
+                onClick={() => onEliminar(pregunta.id)}
+                className="absolute top-0 right-0 -translate-y-2 mr-1 px-4 py-1 text-red-700 bg-red-100 rounded-full text-sm font-medium hover:bg-red-200 transition"
+                title="Eliminar"
+              >
+                Eliminar
+              </button>
+            )}
           </div>
         ))}
       </div>
