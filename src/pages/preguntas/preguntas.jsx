@@ -1,23 +1,25 @@
+// Importaciones
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from "../../components/general/Header";
 import Footer from "../../components/general/Footer";
 
+// Componente principal
 export default function PreguntasFormulario() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const puestoId = location.state?.puestoId;
-  const entrevistaId = location.state?.entrevistaId;
-  const idEntrevistador = location.state?.idEntrevistador;
-  const idCandidato = location.state?.idCandidato;
+  // Extraer datos pasados por navegación
+  const { puestoId, entrevistaId, idEntrevistador, idCandidato } = location.state || {};
 
+  // Estados del componente
   const [preguntasGenericas, setPreguntasGenericas] = useState([]);
   const [preguntasEspecificas, setPreguntasEspecificas] = useState([]);
   const [preguntasPersonalizadas, setPreguntasPersonalizadas] = useState([]);
   const [nuevaPregunta, setNuevaPregunta] = useState("");
   const [respuestas, setRespuestas] = useState({});
 
+  // Cargar respuestas guardadas (en caso de volver atrás)
   useEffect(() => {
     if (location.state?.respuestas) {
       const respuestasGuardadas = {};
@@ -28,32 +30,26 @@ export default function PreguntasFormulario() {
     }
   }, []);
 
+  // Cargar preguntas desde la API
   useEffect(() => {
     const fetchPreguntas = async () => {
       try {
+        // Preguntas genéricas
         const respGen = await fetch("http://localhost:8080/api/preguntas/genericas");
-        if (respGen.ok) {
-          const gen = await respGen.json();
-          setPreguntasGenericas(gen);
-        }
+        if (respGen.ok) setPreguntasGenericas(await respGen.json());
 
+        // Preguntas específicas por puesto
         if (puestoId) {
           const respEsp = await fetch(`http://localhost:8080/api/preguntas/puesto/${puestoId}`);
-          if (respEsp.ok) {
-            const esp = await respEsp.json();
-            setPreguntasEspecificas(esp);
-          }
+          if (respEsp.ok) setPreguntasEspecificas(await respEsp.json());
         }
 
+        // Preguntas personalizadas por entrevista
         if (entrevistaId) {
           const respPers = await fetch(`http://localhost:8080/api/preguntas/personalizada/${entrevistaId}`);
-          if (respPers.ok) {
-            const pers = await respPers.json();
-            setPreguntasPersonalizadas(pers);
-          } else {
-            setPreguntasPersonalizadas([]);
-          }
+          setPreguntasPersonalizadas(respPers.ok ? await respPers.json() : []);
         }
+
       } catch (err) {
         console.error("Error al cargar preguntas:", err);
       }
@@ -62,26 +58,23 @@ export default function PreguntasFormulario() {
     fetchPreguntas();
   }, [puestoId, entrevistaId]);
 
+  // Manejar cambio de respuestas
   const handleChange = (id, value) => {
-    setRespuestas(prev => ({
-      ...prev,
-      [id]: value
-    }));
+    setRespuestas(prev => ({ ...prev, [id]: value }));
   };
 
+  // Enviar respuestas y navegar
   const handleSubmit = (e) => {
     e.preventDefault();
 
     const respuestasPreparadas = Object.entries(respuestas).map(([key, value]) => {
       const [tipo, id] = key.split("-");
 
-      const pregunta = preguntasGenericas
-        .concat(preguntasEspecificas, preguntasPersonalizadas)
-        .find(p =>
-          (tipo === "generica" && p.idPregunta === parseInt(id)) ||
-          (tipo === "especifica" && p.idPregunta === parseInt(id)) ||
-          (tipo === "personalizada" && p.idPreguntaPersonalizada === parseInt(id))
-        );
+      const pregunta = [...preguntasGenericas, ...preguntasEspecificas, ...preguntasPersonalizadas].find(p =>
+        (tipo === "generica" && p.idPregunta === parseInt(id)) ||
+        (tipo === "especifica" && p.idPregunta === parseInt(id)) ||
+        (tipo === "personalizada" && p.idPreguntaPersonalizada === parseInt(id))
+      );
 
       return {
         label: pregunta?.texto || "Pregunta",
@@ -103,6 +96,7 @@ export default function PreguntasFormulario() {
     });
   };
 
+  // Añadir pregunta personalizada
   const handleAgregarPregunta = async (e) => {
     e.preventDefault();
     const texto = nuevaPregunta.trim();
@@ -111,13 +105,8 @@ export default function PreguntasFormulario() {
     try {
       const response = await fetch("http://localhost:8080/api/preguntas/personalizada", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          texto,
-          entrevistaId
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texto, entrevistaId })
       });
 
       if (!response.ok) throw new Error("Error al guardar pregunta personalizada");
@@ -125,12 +114,14 @@ export default function PreguntasFormulario() {
       const nueva = await response.json();
       setPreguntasPersonalizadas(prev => [...prev, nueva]);
       setNuevaPregunta("");
+
     } catch (err) {
       console.error("Error al añadir pregunta personalizada:", err);
       alert("No se pudo guardar la pregunta.");
     }
   };
 
+  // Eliminar pregunta personalizada
   const handleEliminarPregunta = async (id) => {
     try {
       const response = await fetch(`http://localhost:8080/api/preguntas/personalizada/${id}`, {
@@ -139,12 +130,14 @@ export default function PreguntasFormulario() {
       if (!response.ok) throw new Error("Error al eliminar pregunta");
 
       setPreguntasPersonalizadas(prev => prev.filter(p => p.idPreguntaPersonalizada !== id));
+
     } catch (err) {
       console.error("Error al eliminar pregunta:", err);
       alert("No se pudo eliminar la pregunta.");
     }
   };
 
+  // Render principal
   return (
     <div className="bg-gradient-to-br from-blue-50 to-white min-h-screen flex flex-col font-sans text-blue-900">
       <Header />
@@ -154,6 +147,7 @@ export default function PreguntasFormulario() {
             Preguntas de la Entrevista
           </h1>
 
+          {/* Formulario de preguntas */}
           <form onSubmit={handleSubmit} className="space-y-12">
             <PreguntaSection
               titulo="Preguntas Genéricas"
@@ -189,6 +183,7 @@ export default function PreguntasFormulario() {
             </div>
           </form>
 
+          {/* Sección para agregar preguntas personalizadas */}
           <div className="mt-14 pt-6 border-t border-blue-200">
             <h2 className="text-xl font-semibold mb-4 text-blue-700">Añadir pregunta personalizada</h2>
             <form onSubmit={handleAgregarPregunta} className="flex gap-4 items-center">
@@ -214,7 +209,16 @@ export default function PreguntasFormulario() {
   );
 }
 
-function PreguntaSection({ titulo, preguntas, prefix, respuestas, onChange, esPersonalizada = false, onEliminar }) {
+// Componente reutilizable para mostrar una sección de preguntas
+function PreguntaSection({
+  titulo,
+  preguntas,
+  prefix,
+  respuestas,
+  onChange,
+  esPersonalizada = false,
+  onEliminar
+}) {
   return (
     <section>
       <h2 className="text-2xl font-semibold mb-6 text-blue-700">{titulo}</h2>
@@ -236,13 +240,14 @@ function PreguntaSection({ titulo, preguntas, prefix, respuestas, onChange, esPe
               />
               {esPersonalizada && (
                 <button
-                  type="button"
-                  onClick={() => onEliminar(p.idPreguntaPersonalizada)}
-                  className="absolute top-0 right-0 mt-1 mr-1 text-red-500 hover:text-red-700 font-bold text-lg"
-                  title="Eliminar pregunta"
-                >
-                  ✕
-                </button>
+                type="button"
+                onClick={() => onEliminar(p.idPreguntaPersonalizada)}
+                className="absolute -top-2 right-2 bg-red-100 text-red-700 font-semibold py-1 px-4 rounded-full hover:bg-red-200 transition"
+                title="Eliminar pregunta"
+              >
+                Eliminar
+              </button>
+
               )}
             </div>
           );

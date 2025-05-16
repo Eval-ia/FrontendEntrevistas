@@ -1,21 +1,26 @@
+// Importaciones
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../../components/general/Header";
 import Footer from "../../components/general/Footer";
 
+// Componente principal
 export default function Respuestas() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Datos recibidos desde navegación previa
   const respuestasIniciales = location.state?.respuestas || [];
   const entrevistaId = location.state?.entrevistaId;
   const puestoId = location.state?.puestoId;
   const idEntrevistador = location.state?.idEntrevistador;
   const idCandidato = location.state?.idCandidato;
 
+  // Estados del componente
   const [mostrarJSON, setMostrarJSON] = useState(false);
   const [jsonFinal, setJsonFinal] = useState(null);
 
+  // Volver atrás a la pantalla de preguntas, con datos preservados
   const handleVolver = () => {
     navigate("/preguntas", {
       state: {
@@ -28,15 +33,17 @@ export default function Respuestas() {
     });
   };
 
+  // Finalizar entrevista y guardar respuestas
   const handleFinalizar = async () => {
     try {
-      // Crear el payload con el campo correcto
+      // Construcción del payload para la API
       const payloadBackend = respuestasIniciales.map((r) => {
         const respuesta = {
           entrevista: { idEntrevista: entrevistaId },
           textoRespuesta: r.value
         };
 
+        // Distinguir entre pregunta normal y personalizada
         if (r.tipo === "personalizada") {
           respuesta.preguntaPersonalizada = { idPreguntaPersonalizada: r.id };
         } else {
@@ -46,6 +53,7 @@ export default function Respuestas() {
         return respuesta;
       });
 
+      // Enviar respuestas al backend
       const response = await fetch("http://localhost:8080/api/respuestas/guardar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -54,7 +62,7 @@ export default function Respuestas() {
 
       if (!response.ok) throw new Error("Error al guardar respuestas");
 
-      // Construir JSON final para mostrar
+      // Crear JSON de resumen para mostrar al usuario
       const resumen = {
         idEntrevistador,
         idCandidato,
@@ -74,14 +82,14 @@ export default function Respuestas() {
 
       setJsonFinal(resumen);
       setMostrarJSON(true);
-      console.log("✅ JSON generado:", resumen);
-      alert("✅ Respuestas guardadas correctamente");
+      console.log("JSON generado:", resumen);
+
     } catch (err) {
-      console.error("❌ Error al guardar respuestas:", err);
-      alert("No se pudieron guardar las respuestas.");
+      console.error("Error al guardar respuestas:", err);
     }
   };
 
+  // Renderizado del componente
   return (
     <div className="bg-gradient-to-br from-blue-50 to-white min-h-screen flex flex-col font-sans text-blue-900">
       <Header />
@@ -91,6 +99,7 @@ export default function Respuestas() {
             Respuestas Enviadas
           </h1>
 
+          {/* Listado de respuestas mostradas */}
           <ul className="space-y-4">
             {respuestasIniciales.map((resp, idx) => (
               <li
@@ -103,6 +112,7 @@ export default function Respuestas() {
             ))}
           </ul>
 
+          {/* Botones de navegación */}
           <div className="flex justify-center gap-6 mt-10">
             <button
               onClick={handleVolver}
@@ -112,12 +122,14 @@ export default function Respuestas() {
             </button>
             <button
               onClick={handleFinalizar}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-xl shadow-xl font-semibold transition-transform transform hover:scale-105"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl shadow-xl font-semibold transition-transform transform hover:scale-105"
             >
               Finalizar
             </button>
+
           </div>
 
+          {/* Mostrar resumen JSON generado */}
           {mostrarJSON && jsonFinal && (
             <div className="mt-12 p-6 bg-gray-100 border border-gray-300 rounded-xl">
               <h3 className="text-lg font-semibold mb-2 text-gray-800">JSON generado:</h3>
