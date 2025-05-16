@@ -1,8 +1,10 @@
+// ...imports sin cambios
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/general/Header";
 import Footer from "../../components/general/Footer";
 
+// Tecnologías por categoría
 const tecnologias = {
   Móvil: ["iOS", "Android", "Cordova", "Xamarin", "Ionic"],
   Frontend: ["HTML5", "CSS3", "Angular", "Bootstrap"],
@@ -68,30 +70,75 @@ export default function EntrevistaForm() {
     e.preventDefault();
 
     try {
-      const filtro = {
-        nivel,
-        tecnologia: tecnologiaSeleccionada
-      };
+      const usuariosRes = await fetch(
+        `http://localhost:8080/api/usuarios/crear?entrevistador=${encodeURIComponent(nombreEntrevistador)}&candidato=${encodeURIComponent(nombreCandidato)}`,
+        { method: "POST" }
+      );
+      if (!usuariosRes.ok) throw new Error("Error al guardar usuarios");
 
-      const resPuesto = await fetch("http://localhost:8080/api/puestos/buscar", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(filtro)
-      });
+      const usuarios = await usuariosRes.json();
+      const entrevistadorId = usuarios.find(u => u.rol === "ENTREVISTADOR")?.idUsuario;
+      const candidatoId = usuarios.find(u => u.rol === "CANDIDATO")?.idUsuario;
 
-      if (!resPuesto.ok) {
-        throw new Error("No se encontró un puesto compatible");
+      if (!entrevistadorId || !candidatoId) {
+        throw new Error("No se pudieron obtener los IDs de los usuarios");
       }
 
-      const puestoId = await resPuesto.json();
-      console.log("ID del puesto:", puestoId);
+      const catRes = await fetch(
+        `http://localhost:8080/api/categoria/guardar?nombre=${encodeURIComponent(tecnologiaSeleccionada)}`,
+        { method: "POST" }
+      );
+      if (!catRes.ok) throw new Error("Error al guardar categoría");
 
-      navigate(`/preguntas?puestoId=${puestoId}`);
+      const nivelRes = await fetch(
+        `http://localhost:8080/api/nivel/guardar?nombre=${encodeURIComponent(nivel)}`,
+        { method: "POST" }
+      );
+      if (!nivelRes.ok) throw new Error("Error al guardar nivel");
+
+      const puestoRes = await fetch("http://localhost:8080/api/puestos/crear-o-buscar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tecnologia: tecnologiaSeleccionada,
+          nivel: nivel
+        })
+      });
+      if (!puestoRes.ok) throw new Error("Error al crear o buscar puesto");
+
+      const puestoId = await puestoRes.json();
+
+      const entrevistaRes = await fetch("http://localhost:8080/api/entrevistas/crear", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          entrevistador: { idUsuario: entrevistadorId },
+          candidato: { idUsuario: candidatoId },
+          puesto: { idPuesto: puestoId },
+          fecha: fechaActual
+        })
+      });
+
+      if (!entrevistaRes.ok) throw new Error("Error al crear la entrevista");
+
+      const entrevista = await entrevistaRes.json();
+      const entrevistaId = entrevista.idEntrevista;
+
+      console.log("Entrevista creada:", entrevista);
+
+      navigate("/preguntas", {
+        state: {
+          puestoId,
+          entrevistaId,
+          idEntrevistador: entrevistadorId,
+          idCandidato: candidatoId
+        }
+      });
+
+
     } catch (error) {
-      console.error("Error al buscar el puesto:", error);
-      alert("No se pudo encontrar un puesto de trabajo con esos datos.");
+      console.error("Error al procesar la entrevista:", error.message || error);
+      alert("Hubo un error al procesar los datos.");
     }
   };
 
