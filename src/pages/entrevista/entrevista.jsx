@@ -1,8 +1,10 @@
+// Importaciones
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/general/Header";
 import Footer from "../../components/general/Footer";
 
+// Tecnologías agrupadas por categoría
 const tecnologias = {
   Móvil: ["iOS", "Android", "Cordova", "Xamarin", "Ionic"],
   Frontend: ["HTML5", "CSS3", "Angular", "Bootstrap"],
@@ -15,6 +17,7 @@ const tecnologias = {
 export default function EntrevistaForm() {
   const navigate = useNavigate();
 
+  // Estados del formulario
   const [fechaActual, setFechaActual] = useState("");
   const [tecnologiaSeleccionada, setTecnologiaSeleccionada] = useState(null);
   const [nivel, setNivel] = useState("");
@@ -24,6 +27,7 @@ export default function EntrevistaForm() {
   const [nombreCandidato, setNombreCandidato] = useState("");
   const [aniosExperiencia, setAniosExperiencia] = useState("");
 
+  // Establecer la fecha actual al cargar el componente
   useEffect(() => {
     const hoy = new Date();
     const yyyy = hoy.getFullYear();
@@ -32,6 +36,7 @@ export default function EntrevistaForm() {
     setFechaActual(`${yyyy}-${mm}-${dd}`);
   }, []);
 
+  // Cambiar placeholder según nivel seleccionado
   useEffect(() => {
     switch (nivel) {
       case "junior":
@@ -48,12 +53,15 @@ export default function EntrevistaForm() {
     }
   }, [nivel]);
 
+  // Selección de tecnología (solo una a la vez)
   const seleccionarTecnologia = (nombre) => {
     setTecnologiaSeleccionada((prev) => (prev === nombre ? null : nombre));
   };
 
+  // Desmarcar tecnología seleccionada
   const deseleccionarTodo = () => setTecnologiaSeleccionada(null);
 
+  // Validar si el formulario está completo
   const estaFormularioCompleto = () => {
     return (
       nombreEntrevistador.trim() !== "" &&
@@ -64,40 +72,78 @@ export default function EntrevistaForm() {
     );
   };
 
+  // Manejar el envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const datos = {
-      nombreEntrevistador,
-      nombreCandidato,
-      nivel,
-      aniosExperiencia: parseInt(aniosExperiencia),
-      fecha: fechaActual,
-      tecnologias: tecnologiaSeleccionada ? [tecnologiaSeleccionada] : []
-    };
-
     try {
-      const response = await fetch("http://localhost:8080/api/entrevistas", {
+      // 1. Crear usuarios (entrevistador y candidato)
+      const usuariosRes = await fetch(
+        `http://localhost:8080/api/usuarios/crear?entrevistador=${encodeURIComponent(nombreEntrevistador)}&candidato=${encodeURIComponent(nombreCandidato)}`,
+        { method: "POST" }
+      );
+      if (!usuariosRes.ok) throw new Error("Error al guardar usuarios");
+      const usuarios = await usuariosRes.json();
+      const entrevistadorId = usuarios.find(u => u.rol === "ENTREVISTADOR")?.idUsuario;
+      const candidatoId = usuarios.find(u => u.rol === "CANDIDATO")?.idUsuario;
+      if (!entrevistadorId || !candidatoId) throw new Error("IDs no encontrados");
+
+      // 2. Crear categoría si no existe
+      const catRes = await fetch(
+        `http://localhost:8080/api/categoria/guardar?nombre=${encodeURIComponent(tecnologiaSeleccionada)}`,
+        { method: "POST" }
+      );
+      if (!catRes.ok) throw new Error("Error al guardar categoría");
+
+      // 3. Crear nivel si no existe
+      const nivelRes = await fetch(
+        `http://localhost:8080/api/nivel/guardar?nombre=${encodeURIComponent(nivel)}`,
+        { method: "POST" }
+      );
+      if (!nivelRes.ok) throw new Error("Error al guardar nivel");
+
+      // 4. Crear o buscar puesto
+      const puestoRes = await fetch("http://localhost:8080/api/puestos/crear-o-buscar", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(datos)
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tecnologia: tecnologiaSeleccionada, nivel })
+      });
+      if (!puestoRes.ok) throw new Error("Error al crear o buscar puesto");
+      const puestoId = await puestoRes.json();
+
+      // 5. Crear entrevista con los datos anteriores
+      const entrevistaRes = await fetch("http://localhost:8080/api/entrevistas/crear", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          entrevistador: { idUsuario: entrevistadorId },
+          candidato: { idUsuario: candidatoId },
+          puesto: { idPuesto: puestoId },
+          fecha: fechaActual
+        })
+      });
+      if (!entrevistaRes.ok) throw new Error("Error al crear la entrevista");
+
+      const entrevista = await entrevistaRes.json();
+      const entrevistaId = entrevista.idEntrevista;
+
+      // Redirigir al siguiente paso con los datos relevantes
+      navigate("/preguntas", {
+        state: {
+          puestoId,
+          entrevistaId,
+          idEntrevistador: entrevistadorId,
+          idCandidato: candidatoId
+        }
       });
 
-      if (!response.ok) {
-        throw new Error("Error al guardar la entrevista");
-      }
-
-      const resultado = await response.json();
-      console.log("✅ Entrevista guardada:", resultado);
-      navigate("/preguntas");
     } catch (error) {
-      console.error("❌ Error al enviar los datos:", error);
-      alert("No se pudo guardar la entrevista");
+      console.error("Error al procesar la entrevista:", error.message || error);
+      alert("Hubo un error al procesar los datos.");
     }
   };
 
+  // Renderizado del formulario
   return (
     <div className="bg-gradient-to-br from-blue-50 to-white min-h-screen flex flex-col font-sans text-blue-900">
       <Header />
@@ -108,6 +154,7 @@ export default function EntrevistaForm() {
           <InputBlock id="nombreentrevistador" label="Nombre del entrevistador" value={nombreEntrevistador} onChange={e => setNombreEntrevistador(e.target.value)} />
           <InputBlock id="nombrecandidato" label="Nombre del candidato" value={nombreCandidato} onChange={e => setNombreCandidato(e.target.value)} />
 
+          {/* Selección de tecnologías */}
           <div>
             <label className="block text-sm font-semibold mb-2">Tecnologías</label>
             <div className="grid sm:grid-cols-2 gap-6 max-h-80 overflow-y-auto p-4 bg-white/60 rounded-xl border border-blue-300">
@@ -142,11 +189,16 @@ export default function EntrevistaForm() {
             </div>
           </div>
 
+          {/* Muestra la tecnología seleccionada */}
           {tecnologiaSeleccionada && (
             <div className="bg-white/60 p-4 rounded-xl border border-blue-200 shadow">
-              <div className="flex justify-between mb-2">
+              <div className="flex justify-between mb-2 items-center">
                 <p className="text-sm font-semibold">Tecnología seleccionada:</p>
-                <button type="button" onClick={deseleccionarTodo} className="text-sm text-red-600 hover:underline">
+                <button
+                  type="button"
+                  onClick={deseleccionarTodo}
+                  className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium hover:bg-red-200 transition-colors"
+                >
                   Deseleccionar
                 </button>
               </div>
@@ -156,6 +208,7 @@ export default function EntrevistaForm() {
             </div>
           )}
 
+          {/* Select para nivel y experiencia */}
           <SelectBlock
             id="nivel"
             label="Nivel"
@@ -168,7 +221,6 @@ export default function EntrevistaForm() {
               { value: "senior", label: "Senior" }
             ]}
           />
-
           <InputBlock
             id="experiencia"
             label="Años de experiencia"
@@ -176,7 +228,6 @@ export default function EntrevistaForm() {
             value={aniosExperiencia}
             onChange={(e) => setAniosExperiencia(e.target.value)}
           />
-
           <InputBlock
             id="fecha"
             label="Fecha"
@@ -185,6 +236,7 @@ export default function EntrevistaForm() {
             extraClass="bg-blue-50 text-blue-700 cursor-not-allowed"
           />
 
+          {/* Botón para continuar */}
           <div className="text-center pt-4">
             <button
               type="submit"
@@ -205,7 +257,7 @@ export default function EntrevistaForm() {
   );
 }
 
-// Reutilizables
+// Componente reutilizable para inputs de texto
 function InputBlock({ id, label, value, onChange, placeholder = "", readOnly = false, extraClass = "" }) {
   return (
     <div>
@@ -224,6 +276,7 @@ function InputBlock({ id, label, value, onChange, placeholder = "", readOnly = f
   );
 }
 
+// Componente reutilizable para selects
 function SelectBlock({ id, label, value, onChange, options }) {
   return (
     <div>
