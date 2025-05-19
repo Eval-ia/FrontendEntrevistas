@@ -1,143 +1,98 @@
-// Importaciones
-import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "../../components/general/Header";
 import Footer from "../../components/general/Footer";
+import { useEntrevistaStore } from "../../stores/entrevistaStore";
+import { usePreguntasStore } from "../../stores/preguntasStore";
+import {
+  getPreguntasGenericas,
+  getPreguntasPuesto,
+  getPreguntasPersonalizadas,
+  crearPreguntaPersonalizada,
+  eliminarPreguntaPersonalizada
+} from "../../services/preguntas";
 
-// Componente principal
-export default function PreguntasFormulario() {
-  const location = useLocation();
+export default function PreguntasFormulario({ puestoId, entrevistaId, idEntrevistador, idCandidato }) {
   const navigate = useNavigate();
 
-  // Extraer datos pasados por navegación
-  const { puestoId, entrevistaId, idEntrevistador, idCandidato } = location.state || {};
+  // Stores
+  const { agregarRespuesta } = useEntrevistaStore();
+  const {
+    preguntasGenericas, setPreguntasGenericas,
+    preguntasPuesto, setPreguntasPuesto,
+    preguntasPersonalizadas, setPreguntasPersonalizadas
+  } = usePreguntasStore();
 
-  // Estados del componente
-  const [preguntasGenericas, setPreguntasGenericas] = useState([]);
-  const [preguntasEspecificas, setPreguntasEspecificas] = useState([]);
-  const [preguntasPersonalizadas, setPreguntasPersonalizadas] = useState([]);
-  const [nuevaPregunta, setNuevaPregunta] = useState("");
   const [respuestas, setRespuestas] = useState({});
+  const [nuevaPregunta, setNuevaPregunta] = useState("");
 
-  // Cargar respuestas guardadas (en caso de volver atrás)
+  // Cargar preguntas al montar
   useEffect(() => {
-    if (location.state?.respuestas) {
-      const respuestasGuardadas = {};
-      location.state.respuestas.forEach(r => {
-        respuestasGuardadas[`${r.tipo}-${r.id}`] = r.value;
-      });
-      setRespuestas(respuestasGuardadas);
-    }
-  }, []);
-
-  // Cargar preguntas desde la API
-  useEffect(() => {
-    const fetchPreguntas = async () => {
-      try {
-        // Preguntas genéricas
-        const respGen = await fetch("http://localhost:8080/api/preguntas/genericas");
-        if (respGen.ok) setPreguntasGenericas(await respGen.json());
-
-        // Preguntas específicas por puesto
-        if (puestoId) {
-          const respEsp = await fetch(`http://localhost:8080/api/preguntas/puesto/${puestoId}`);
-          if (respEsp.ok) setPreguntasEspecificas(await respEsp.json());
-        }
-
-        // Preguntas personalizadas por entrevista
-        if (entrevistaId) {
-          const respPers = await fetch(`http://localhost:8080/api/preguntas/personalizada/${entrevistaId}`);
-          setPreguntasPersonalizadas(respPers.ok ? await respPers.json() : []);
-        }
-
-      } catch (err) {
-        console.error("Error al cargar preguntas:", err);
-      }
-    };
-
-    fetchPreguntas();
+    getPreguntasGenericas().then(setPreguntasGenericas);
+    if (puestoId) getPreguntasPuesto(puestoId).then(setPreguntasPuesto);
+    if (entrevistaId) getPreguntasPersonalizadas(entrevistaId).then(setPreguntasPersonalizadas);
   }, [puestoId, entrevistaId]);
 
-  // Manejar cambio de respuestas
-  const handleChange = (id, value) => {
-    setRespuestas(prev => ({ ...prev, [id]: value }));
+  // Guardar respuesta
+  const handleRespuesta = (id, value, tipo, label) => {
+    setRespuestas((prev) => ({ ...prev, [id]: value }));
+    agregarRespuesta({ id, value, tipo, label });
   };
 
-  // Enviar respuestas y navegar
+  // Preparar y enviar respuestas
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const respuestasPreparadas = Object.entries(respuestas).map(([key, value]) => {
-      const [tipo, id] = key.split("-");
+    // Generar el array que espera el Respuestas.jsx
+    const respuestasPreparadas = [
+      ...preguntasGenericas.map((p) => ({
+        id: p.idPregunta,
+        label: p.texto,
+        tipo: "generica",
+        value: respuestas[p.idPregunta] || ""
+      })),
+      ...preguntasPuesto.map((p) => ({
+        id: p.idPregunta,
+        label: p.texto,
+        tipo: "especifica",
+        value: respuestas[p.idPregunta] || ""
+      })),
+      ...preguntasPersonalizadas.map((p) => ({
+        id: p.idPreguntaPersonalizada,
+        label: p.texto,
+        tipo: "personalizada",
+        value: respuestas[p.idPreguntaPersonalizada] || ""
+      })),
+    ];
 
-      const pregunta = [...preguntasGenericas, ...preguntasEspecificas, ...preguntasPersonalizadas].find(p =>
-        (tipo === "generica" && p.idPregunta === parseInt(id)) ||
-        (tipo === "especifica" && p.idPregunta === parseInt(id)) ||
-        (tipo === "personalizada" && p.idPreguntaPersonalizada === parseInt(id))
-      );
-
-      return {
-        label: pregunta?.texto || "Pregunta",
-        value,
-        tipo,
-        id: parseInt(id),
-        campoId: tipo === "personalizada" ? "idPreguntaPersonalizada" : "idPregunta"
-      };
-    });
-
-    navigate("/respuestas", {
-      state: {
-        respuestas: respuestasPreparadas,
-        entrevistaId,
-        puestoId,
-        idEntrevistador,
-        idCandidato
-      }
-    });
+    // Setear en Zustand o pasar a la siguiente vista según flujo
+    // Aquí podrías hacer un set global o pasar por navigate, tú eliges.
+    navigate("/respuestas");
   };
 
-  // Añadir pregunta personalizada
+  // Crear pregunta personalizada
   const handleAgregarPregunta = async (e) => {
     e.preventDefault();
-    const texto = nuevaPregunta.trim();
-    if (!texto || !entrevistaId) return;
-
+    if (!nuevaPregunta.trim() || !entrevistaId) return;
     try {
-      const response = await fetch("http://localhost:8080/api/preguntas/personalizada", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ texto, entrevistaId })
-      });
-
-      if (!response.ok) throw new Error("Error al guardar pregunta personalizada");
-
-      const nueva = await response.json();
-      setPreguntasPersonalizadas(prev => [...prev, nueva]);
+      const nueva = await crearPreguntaPersonalizada(nuevaPregunta.trim(), entrevistaId);
+      setPreguntasPersonalizadas([...preguntasPersonalizadas, nueva]);
       setNuevaPregunta("");
-
-    } catch (err) {
-      console.error("Error al añadir pregunta personalizada:", err);
-      alert("No se pudo guardar la pregunta.");
+    } catch {
+      alert("No se pudo guardar la pregunta personalizada");
     }
   };
 
   // Eliminar pregunta personalizada
   const handleEliminarPregunta = async (id) => {
     try {
-      const response = await fetch(`http://localhost:8080/api/preguntas/personalizada/${id}`, {
-        method: "DELETE"
-      });
-      if (!response.ok) throw new Error("Error al eliminar pregunta");
-
-      setPreguntasPersonalizadas(prev => prev.filter(p => p.idPreguntaPersonalizada !== id));
-
-    } catch (err) {
-      console.error("Error al eliminar pregunta:", err);
-      alert("No se pudo eliminar la pregunta.");
+      await eliminarPreguntaPersonalizada(id);
+      setPreguntasPersonalizadas(preguntasPersonalizadas.filter(p => p.idPreguntaPersonalizada !== id));
+    } catch {
+      alert("No se pudo eliminar la pregunta personalizada");
     }
   };
 
-  // Render principal
   return (
     <div className="bg-gradient-to-br from-blue-50 to-white min-h-screen flex flex-col font-sans text-blue-900">
       <Header />
@@ -146,33 +101,30 @@ export default function PreguntasFormulario() {
           <h1 className="text-4xl font-extrabold text-blue-800 text-center mb-10 tracking-tight">
             Preguntas de la Entrevista
           </h1>
-
-          {/* Formulario de preguntas */}
           <form onSubmit={handleSubmit} className="space-y-12">
             <PreguntaSection
               titulo="Preguntas Genéricas"
               preguntas={preguntasGenericas}
-              prefix="generica"
+              tipo="generica"
               respuestas={respuestas}
-              onChange={handleChange}
+              onChange={handleRespuesta}
             />
             <PreguntaSection
               titulo="Preguntas Específicas del Puesto"
-              preguntas={preguntasEspecificas}
-              prefix="especifica"
+              preguntas={preguntasPuesto}
+              tipo="especifica"
               respuestas={respuestas}
-              onChange={handleChange}
+              onChange={handleRespuesta}
             />
             <PreguntaSection
               titulo="Preguntas Personalizadas"
               preguntas={preguntasPersonalizadas}
-              prefix="personalizada"
+              tipo="personalizada"
               respuestas={respuestas}
-              onChange={handleChange}
+              onChange={handleRespuesta}
               esPersonalizada
               onEliminar={handleEliminarPregunta}
             />
-
             <div className="text-center">
               <button
                 type="submit"
@@ -182,8 +134,6 @@ export default function PreguntasFormulario() {
               </button>
             </div>
           </form>
-
-          {/* Sección para agregar preguntas personalizadas */}
           <div className="mt-14 pt-6 border-t border-blue-200">
             <h2 className="text-xl font-semibold mb-4 text-blue-700">Añadir pregunta personalizada</h2>
             <form onSubmit={handleAgregarPregunta} className="flex gap-4 items-center">
@@ -209,11 +159,11 @@ export default function PreguntasFormulario() {
   );
 }
 
-// Componente reutilizable para mostrar una sección de preguntas
+// Componente para sección de preguntas
 function PreguntaSection({
   titulo,
   preguntas,
-  prefix,
+  tipo,
   respuestas,
   onChange,
   esPersonalizada = false,
@@ -224,7 +174,7 @@ function PreguntaSection({
       <h2 className="text-2xl font-semibold mb-6 text-blue-700">{titulo}</h2>
       <div className="grid gap-6">
         {preguntas.map((p) => {
-          const id = `${prefix}-${p.idPregunta || p.idPreguntaPersonalizada}`;
+          const id = tipo === "personalizada" ? p.idPreguntaPersonalizada : p.idPregunta;
           return (
             <div key={id} className="relative">
               <label htmlFor={id} className="block text-sm font-semibold text-blue-800 mb-2">
@@ -235,19 +185,18 @@ function PreguntaSection({
                 id={id}
                 name={id}
                 value={respuestas[id] || ""}
-                onChange={(e) => onChange(id, e.target.value)}
+                onChange={(e) => onChange(id, e.target.value, tipo, p.texto)}
                 className="w-full px-4 py-3 border-2 border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
               />
               {esPersonalizada && (
                 <button
-                type="button"
-                onClick={() => onEliminar(p.idPreguntaPersonalizada)}
-                className="absolute -top-2 right-2 bg-red-100 text-red-700 font-semibold py-1 px-4 rounded-full hover:bg-red-200 transition"
-                title="Eliminar pregunta"
-              >
-                Eliminar
-              </button>
-
+                  type="button"
+                  onClick={() => onEliminar(id)}
+                  className="absolute -top-2 right-2 bg-red-100 text-red-700 font-semibold py-1 px-4 rounded-full hover:bg-red-200 transition"
+                  title="Eliminar pregunta"
+                >
+                  Eliminar
+                </button>
               )}
             </div>
           );
