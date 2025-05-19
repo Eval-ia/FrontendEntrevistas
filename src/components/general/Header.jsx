@@ -9,7 +9,7 @@ export default function Header() {
           Eval.IA
         </Link>
         <nav className="space-x-6 text-sm font-medium">
-          <Link to="/" className="hover:underline">Entrevista</Link>
+          <Link to="/entrevista" className="hover:underline">Entrevista</Link>
           <Link to="#informe" className="hover:underline">Informe</Link>
         </nav>
       </div>
