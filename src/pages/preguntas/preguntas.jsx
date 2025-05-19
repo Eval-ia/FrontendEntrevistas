@@ -14,7 +14,9 @@ import {
 
 export default function PreguntasFormulario({ puestoId, entrevistaId, idEntrevistador, idCandidato }) {
   const navigate = useNavigate();
-
+ const entrevista = useEntrevistaStore((state) => state.entrevista);
+ console.log(entrevista);
+ 
   // Stores
   const { agregarRespuesta } = useEntrevistaStore();
   const {

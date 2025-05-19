@@ -167,7 +167,7 @@ export default function EntrevistaForm() {
             options={[
               { value: "", label: "Selecciona un nivel" },
               { value: "junior", label: "Junior" },
-              { value: "semi", label: "Semi-Senior" },
+              { value: "semi-senior", label: "Semi-Senior" },
               { value: "senior", label: "Senior" }
             ]}
           />
