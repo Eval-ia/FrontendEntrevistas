@@ -1,4 +1,3 @@
-// services/preguntas.js
 
 export async function getPreguntasGenericas() {
   const resp = await fetch("http://localhost:8080/api/preguntas/genericas");
