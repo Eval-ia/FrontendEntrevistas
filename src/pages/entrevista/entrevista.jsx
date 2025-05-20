@@ -5,7 +5,7 @@ import Footer from "../../components/general/Footer";
 import TechnologySelector from "../../components/form/TechnologySelector";
 import { useEntrevistaStore } from "../../stores/entrevistaStore";
 import { buscarUsuarioPorNombreYRol, crearUsuario } from "../../services/usuarios";
-import { buscarPuestoPorCategoriaYNivel } from "../../services/puestos";
+import { iniciarChat } from "../../services/puestos";
 
 export default function EntrevistaForm() {
   const navigate = useNavigate();
@@ -43,11 +43,11 @@ export default function EntrevistaForm() {
     }
   }, [nivel]);
 
-  const seleccionarTecnologia = (nombre) => {
-    setTecnologiaSeleccionada((prev) => (prev === nombre ? null : nombre));
-  };
+  // const seleccionarTecnologia = (nombre) => {
+  //   setTecnologiaSeleccionada((prev) => (prev === nombre ? null : nombre));
+  // };
 
-  const deseleccionarTodo = () => setTecnologiaSeleccionada(null);
+  // const deseleccionarTodo = () => setTecnologiaSeleccionada(null);
 
   const estaFormularioCompleto = () => {
     return (
@@ -67,7 +67,7 @@ export default function EntrevistaForm() {
 
       const candidato = await crearUsuario(nombreCandidato, "CANDIDATO");
 
-      const puesto = await buscarPuestoPorCategoriaYNivel(tecnologiaSeleccionada, nivel);
+      const puesto = await iniciarChat(tecnologiaSeleccionada, nivel);
       const idPuesto = puesto.idPuesto;
 
       setDatosBasicos({
@@ -107,23 +107,6 @@ export default function EntrevistaForm() {
                 setTecnologiaSeleccionada((prev) => (prev === nombre ? null : nombre))
               }
             />
-            {tecnologiaSeleccionada && (
-              <div className="bg-white/60 p-4 rounded-xl border border-blue-200 shadow mt-4">
-                <div className="flex justify-between mb-2 items-center">
-                  <p className="text-sm font-semibold">Tecnología seleccionada:</p>
-                  <button
-                    type="button"
-                    onClick={() => setTecnologiaSeleccionada(null)}
-                    className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium hover:bg-red-200 transition-colors"
-                  >
-                    Deseleccionar
-                  </button>
-                </div>
-                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                  {tecnologiaSeleccionada}
-                </span>
-              </div>
-            )}
           </div>
 
           <SelectBlock
