@@ -36,41 +36,41 @@ export default function PreguntasFormulario({ puestoId, entrevistaId, idEntrevis
   }, [puestoId, entrevistaId]);
 
   // Guardar respuesta
-  const handleRespuesta = (id, value, tipo, label) => {
-    setRespuestas((prev) => ({ ...prev, [id]: value }));
-    agregarRespuesta({ id, value, tipo, label });
-  };
+  const handleRespuesta = (id, value) => {
+  setRespuestas((prev) => ({ ...prev, [id]: value }));
+};
+
 
   // Preparar y enviar respuestas
   const handleSubmit = (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    // Generar el array que espera el Respuestas.jsx
-    const respuestasPreparadas = [
-      ...preguntasGenericas.map((p) => ({
-        id: p.idPregunta,
-        label: p.texto,
-        tipo: "generica",
-        value: respuestas[p.idPregunta] || ""
-      })),
-      ...preguntasPuesto.map((p) => ({
-        id: p.idPregunta,
-        label: p.texto,
-        tipo: "especifica",
-        value: respuestas[p.idPregunta] || ""
-      })),
-      ...preguntasPersonalizadas.map((p) => ({
-        id: p.idPreguntaPersonalizada,
-        label: p.texto,
-        tipo: "personalizada",
-        value: respuestas[p.idPreguntaPersonalizada] || ""
-      })),
-    ];
+  const respuestasPreparadas = [
+    ...preguntasGenericas.map((p) => ({
+      id: p.idPregunta,
+      label: p.texto,
+      tipo: "generica",
+      value: respuestas[p.idPregunta] || ""
+    })),
+    ...preguntasPuesto.map((p) => ({
+      id: p.idPregunta,
+      label: p.texto,
+      tipo: "especifica",
+      value: respuestas[p.idPregunta] || ""
+    })),
+    ...preguntasPersonalizadas.map((p) => ({
+      id: p.idPreguntaPersonalizada,
+      label: p.texto,
+      tipo: "personalizada",
+      value: respuestas[p.idPreguntaPersonalizada] || ""
+    })),
+  ];
 
-    // Setear en Zustand o pasar a la siguiente vista según flujo
-    // Aquí podrías hacer un set global o pasar por navigate, tú eliges.
-    navigate("/respuestas");
-  };
+  respuestasPreparadas.forEach(agregarRespuesta);
+
+  navigate("/respuestas");
+};
+
 
   // Crear pregunta personalizada
   const handleAgregarPregunta = async (e) => {

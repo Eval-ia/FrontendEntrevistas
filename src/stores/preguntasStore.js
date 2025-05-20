@@ -17,6 +17,14 @@ export const usePreguntasStore = create(
           preguntasPuesto: [],
           preguntasPersonalizadas: [],
         }),
+      resetPreguntasTotal: () => {
+        set({
+          preguntasGenericas: [],
+          preguntasPuesto: [],
+          preguntasPersonalizadas: [],
+        });
+        localStorage.removeItem("preguntas-storage");
+      }
     }),
     {
       name: "preguntas-storage",

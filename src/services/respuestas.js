@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8080/respuestas";
+const API_BASE = "http://localhost:8080/api/respuestas";
 
 export async function guardarRespuestas(respuestas, entrevistaId) {
   const payload = respuestas.map((r) => {

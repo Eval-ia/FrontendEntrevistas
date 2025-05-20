@@ -4,6 +4,7 @@ import Header from "../../components/general/Header";
 import Footer from "../../components/general/Footer";
 import { useEntrevistaStore } from "../../stores/entrevistaStore";
 import { guardarRespuestas } from "../../services/respuestas";
+import { finalizarEntrevista } from "../../services/entrevista";
 
 export default function Respuestas() {
   const navigate = useNavigate();
@@ -20,37 +21,22 @@ export default function Respuestas() {
 
   // Finalizar la entrevista y guardar respuestas
   const handleFinalizarEntrevista = async () => {
-    try {
-      setMensajeError(null);
+  try {
+    setMensajeError(null);
 
-      // Guardar las respuestas en el backend
-      await guardarRespuestas(entrevista.respuestas, entrevista.idEntrevista);
+    // Llama directamente al servicio que usa Zustand internamente
+    await finalizarEntrevista();
 
-      // Construir el resumen de la entrevista en formato JSON
-      const resumenEntrevista = {
-        idEntrevistador: entrevista.idEntrevistador,
-        idCandidato: entrevista.idCandidato,
-        idPuesto: entrevista.idPuesto,
-        respuestas: entrevista.respuestas.map((respuesta) =>
-          respuesta.tipo === "personalizada"
-            ? {
-                textoPreguntaPersonalizada: respuesta.label,
-                respuesta: respuesta.value
-              }
-            : {
-                idPregunta: respuesta.id,
-                respuesta: respuesta.value
-              }
-        )
-      };
+    // Mostrar el resumen actual desde Zustand directamente
+    setResumenEntrevistaJSON(entrevista);
+    setMostrarResumenJSON(true);
 
-      setResumenEntrevistaJSON(resumenEntrevista);
-      setMostrarResumenJSON(true);
-      limpiarEntrevista();
-    } catch (error) {
-      setMensajeError("No se pudieron guardar las respuestas.");
-    }
-  };
+    limpiarEntrevista(); // limpiar Zustand y localStorage si lo tienes así configurado
+  } catch (error) {
+    setMensajeError("No se pudieron guardar las respuestas.");
+  }
+};
+
 
   return (
     <div className="bg-gradient-to-br from-blue-50 to-white min-h-screen flex flex-col font-sans text-blue-900">

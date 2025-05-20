@@ -32,11 +32,22 @@ export const useEntrevistaStore = create(
             idPuesto: null,
             respuestas: []
           }
-        })
+        }),
+      resetEntrevistaTotal: () => {
+        set({
+          entrevista: {
+            idEntrevistador: null,
+            idCandidato: null,
+            idPuesto: null,
+            respuestas: []
+          }
+        });
+        localStorage.removeItem("entrevista-storage");
+      }
     }),
     {
-      name: "entrevista-storage", // <--- Nombre clave para localStorage
-      partialize: (state) => ({ entrevista: state.entrevista }) // Solo guarda el objeto entrevista
+      name: "entrevista-storage",
+      partialize: (state) => ({ entrevista: state.entrevista })
     }
   )
 );
