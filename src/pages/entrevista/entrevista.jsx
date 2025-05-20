@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/general/Header";
 import Footer from "../../components/general/Footer";
@@ -43,11 +43,11 @@ export default function EntrevistaForm() {
     }
   }, [nivel]);
 
-  const seleccionarTecnologia = (nombre) => {
-    setTecnologiaSeleccionada((prev) => (prev === nombre ? null : nombre));
-  };
+  // const seleccionarTecnologia = (nombre) => {
+  //   setTecnologiaSeleccionada((prev) => (prev === nombre ? null : nombre));
+  // };
 
-  const deseleccionarTodo = () => setTecnologiaSeleccionada(null);
+  // const deseleccionarTodo = () => setTecnologiaSeleccionada(null);
 
   const estaFormularioCompleto = () => {
     return (
@@ -107,23 +107,6 @@ export default function EntrevistaForm() {
                 setTecnologiaSeleccionada((prev) => (prev === nombre ? null : nombre))
               }
             />
-            {tecnologiaSeleccionada && (
-              <div className="bg-white/60 p-4 rounded-xl border border-blue-200 shadow mt-4">
-                <div className="flex justify-between mb-2 items-center">
-                  <p className="text-sm font-semibold">Tecnología seleccionada:</p>
-                  <button
-                    type="button"
-                    onClick={() => setTecnologiaSeleccionada(null)}
-                    className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium hover:bg-red-200 transition-colors"
-                  >
-                    Deseleccionar
-                  </button>
-                </div>
-                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                  {tecnologiaSeleccionada}
-                </span>
-              </div>
-            )}
           </div>
 
           <SelectBlock
