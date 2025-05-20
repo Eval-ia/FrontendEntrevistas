@@ -2,18 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/general/Header";
 import Footer from "../../components/general/Footer";
+import TechnologySelector from "../../components/form/TechnologySelector";
 import { useEntrevistaStore } from "../../stores/entrevistaStore";
 import { buscarUsuarioPorNombreYRol, crearUsuario } from "../../services/usuarios";
 import { buscarPuestoPorCategoriaYNivel } from "../../services/puestos";
-
-const tecnologias = {
-  Móvil: ["iOS", "Android", "Cordova", "Xamarin", "Ionic"],
-  Frontend: ["HTML5", "CSS3", "Angular", "Bootstrap"],
-  Backend: ["Java", "Spring", "Spring Boot", "REST", ".NET", "AEM"],
-  DevOps: ["Git", "Subversion", "Jira"],
-  Datos: ["Cloudera", "Stratio", "SQL Server", "BizTalk Server"],
-  Empresarial: ["SAP", "Appian", "Salesforce", "SharePoint", "Visual Studio"]
-};
 
 export default function EntrevistaForm() {
   const navigate = useNavigate();
@@ -109,55 +101,30 @@ export default function EntrevistaForm() {
 
           <div>
             <label className="block text-sm font-semibold mb-2">Tecnologías</label>
-            <div className="grid sm:grid-cols-2 gap-6 max-h-80 overflow-y-auto p-4 bg-white/60 rounded-xl border border-blue-300">
-              {Object.entries(tecnologias).map(([categoria, items]) => (
-                <div key={categoria}>
-                  <p className="font-medium mb-2">{categoria}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {items.map((nombre) => {
-                      const estaSeleccionada = tecnologiaSeleccionada === nombre;
-                      const hayUnaSeleccionada = tecnologiaSeleccionada !== null;
-                      return (
-                        <button
-                          key={nombre}
-                          type="button"
-                          onClick={() => seleccionarTecnologia(nombre)}
-                          className={`px-3 py-1 rounded-full text-sm font-medium border transition shadow-sm ${
-                            estaSeleccionada
-                              ? "bg-blue-600 text-white border-blue-600"
-                              : hayUnaSeleccionada
-                              ? "bg-gray-200 text-gray-500 border-gray-300 cursor-not-allowed"
-                              : "bg-white text-blue-700 border-blue-300 hover:bg-blue-100"
-                          }`}
-                          disabled={hayUnaSeleccionada && !estaSeleccionada}
-                        >
-                          {nombre}
-                        </button>
-                      );
-                    })}
-                  </div>
+            <TechnologySelector
+              selected={tecnologiaSeleccionada}
+              onSelect={(nombre) =>
+                setTecnologiaSeleccionada((prev) => (prev === nombre ? null : nombre))
+              }
+            />
+            {tecnologiaSeleccionada && (
+              <div className="bg-white/60 p-4 rounded-xl border border-blue-200 shadow mt-4">
+                <div className="flex justify-between mb-2 items-center">
+                  <p className="text-sm font-semibold">Tecnología seleccionada:</p>
+                  <button
+                    type="button"
+                    onClick={() => setTecnologiaSeleccionada(null)}
+                    className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium hover:bg-red-200 transition-colors"
+                  >
+                    Deseleccionar
+                  </button>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {tecnologiaSeleccionada && (
-            <div className="bg-white/60 p-4 rounded-xl border border-blue-200 shadow">
-              <div className="flex justify-between mb-2 items-center">
-                <p className="text-sm font-semibold">Tecnología seleccionada:</p>
-                <button
-                  type="button"
-                  onClick={deseleccionarTodo}
-                  className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium hover:bg-red-200 transition-colors"
-                >
-                  Deseleccionar
-                </button>
+                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                  {tecnologiaSeleccionada}
+                </span>
               </div>
-              <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                {tecnologiaSeleccionada}
-              </span>
-            </div>
-          )}
+            )}
+          </div>
 
           <SelectBlock
             id="nivel"
