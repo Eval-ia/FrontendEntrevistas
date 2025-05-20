@@ -11,3 +11,9 @@ export const iniciarChat = async ({ puesto, descripcion, tecnologia }, setCandid
   setCandidato(candidato);
   setFase("chat");
 };
+
+export const buscarPuestoPorCategoriaYNivel = async (categoria, nivel) => {
+  const res = await fetch(`${API_BASE}/buscar?categoria=${encodeURIComponent(categoria)}&nivel=${encodeURIComponent(nivel)}`);
+  if (!res.ok) throw new Error("No se encontró el puesto");
+  return await res.json();
+};
