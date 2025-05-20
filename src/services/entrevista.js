@@ -1,5 +1,6 @@
 const API_BASE = 'http://localhost:8080/api/entrevistas';
 import { useEntrevistaStore } from "../stores/entrevistaStore";
+
 export const pingBackend = async () => {
   const res = await fetch(`${API_BASE}/ping`);
   if (!res.ok) throw new Error("No se pudo conectar con el backend");
