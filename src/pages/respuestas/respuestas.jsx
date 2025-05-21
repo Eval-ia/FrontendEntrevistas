@@ -1,23 +1,42 @@
-import React, { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "../../components/general/Header";
 import Footer from "../../components/general/Footer";
+import { useEntrevistaStore } from "../../stores/entrevistaStore";
+import { guardarRespuestas } from "../../services/respuestas";
+import { finalizarEntrevista } from "../../services/entrevista";
 
 export default function Respuestas() {
-  const location = useLocation();
   const navigate = useNavigate();
-  const respuestasIniciales = location.state?.respuestas || [];
+  const { entrevista, limpiarEntrevista } = useEntrevistaStore();
 
-  const [mostrarJSON, setMostrarJSON] = useState(false);
+  const [mostrarResumenJSON, setMostrarResumenJSON] = useState(false);
+  const [resumenEntrevistaJSON, setResumenEntrevistaJSON] = useState(null);
+  const [mensajeError, setMensajeError] = useState(null);
 
-  const handleVolver = () => {
-    navigate("/preguntas", { state: { respuestas: respuestasIniciales } });
+  // Volver a la pantalla de preguntas
+  const handleVolverAPreguntas = () => {
+    navigate("/preguntas");
   };
 
-  const handleFinalizar = () => {
-    setMostrarJSON(true);
-    console.log("JSON generado:", respuestasIniciales);
-  };
+  // Finalizar la entrevista y guardar respuestas
+  const handleFinalizarEntrevista = async () => {
+  try {
+    setMensajeError(null);
+
+    // Llama directamente al servicio que usa Zustand internamente
+    await finalizarEntrevista();
+
+    // Mostrar el resumen actual desde Zustand directamente
+    setResumenEntrevistaJSON(entrevista);
+    setMostrarResumenJSON(true);
+
+    limpiarEntrevista(); // limpiar Zustand y localStorage si lo tienes así configurado
+  } catch (error) {
+    setMensajeError("No se pudieron guardar las respuestas.");
+  }
+};
+
 
   return (
     <div className="bg-gradient-to-br from-blue-50 to-white min-h-screen flex flex-col font-sans text-blue-900">
@@ -27,39 +46,34 @@ export default function Respuestas() {
           <h1 className="text-4xl font-extrabold text-blue-800 text-center mb-10 tracking-tight">
             Respuestas Enviadas
           </h1>
-
           <ul className="space-y-4">
-            {respuestasIniciales.map((resp, idx) => (
-              <li
-                key={idx}
-                className="bg-blue-50 border border-blue-200 rounded-xl p-4 shadow"
-              >
-                <p className="font-semibold text-blue-800">{resp.label}</p>
-                <p className="text-blue-600">{resp.value || "Sin respuesta"}</p>
+            {entrevista.respuestas.map((respuesta, indice) => (
+              <li key={indice} className="bg-blue-50 border border-blue-200 rounded-xl p-4 shadow">
+                <p className="font-semibold text-blue-800">{respuesta.label}</p>
+                <p className="text-blue-600">{respuesta.value || "Sin respuesta"}</p>
               </li>
             ))}
           </ul>
-
           <div className="flex justify-center gap-6 mt-10">
             <button
-              onClick={handleVolver}
+              onClick={handleVolverAPreguntas}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl shadow-xl font-semibold transition-transform transform hover:scale-105"
             >
               Volver
             </button>
             <button
-              onClick={handleFinalizar}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-xl shadow-xl font-semibold transition-transform transform hover:scale-105"
+              onClick={handleFinalizarEntrevista}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl shadow-xl font-semibold transition-transform transform hover:scale-105"
             >
               Finalizar
             </button>
           </div>
-
-          {mostrarJSON && (
+          {mensajeError && <p className="text-red-600 mt-4 text-center">{mensajeError}</p>}
+          {mostrarResumenJSON && resumenEntrevistaJSON && (
             <div className="mt-12 p-6 bg-gray-100 border border-gray-300 rounded-xl">
               <h3 className="text-lg font-semibold mb-2 text-gray-800">JSON generado:</h3>
               <pre className="text-sm overflow-x-auto text-gray-700 whitespace-pre-wrap">
-                {JSON.stringify(respuestasIniciales, null, 2)}
+                {JSON.stringify(resumenEntrevistaJSON, null, 2)}
               </pre>
             </div>
           )}

@@ -1,25 +1,20 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/general/Header";
 import Footer from "../../components/general/Footer";
-
-const tecnologias = {
-  Móvil: ["iOS", "Android", "Cordova", "Xamarin", "Ionic"],
-  Frontend: ["HTML5", "CSS3", "Angular", "Bootstrap"],
-  Backend: ["Java", "Spring", "Spring Boot", "REST", ".NET", "AEM"],
-  DevOps: ["Git", "Subversion", "Jira"],
-  Datos: ["Cloudera", "Stratio", "SQL Server", "BizTalk Server"],
-  Empresarial: ["SAP", "Appian", "Salesforce", "SharePoint", "Visual Studio"]
-};
+import TechnologySelector from "../../components/form/TechnologySelector";
+import { useEntrevistaStore } from "../../stores/entrevistaStore";
+import { buscarUsuarioPorNombreYRol, crearUsuario } from "../../services/usuarios";
+import { buscarPuestoPorCategoriaYNivel } from "../../services/puestos";
 
 export default function EntrevistaForm() {
   const navigate = useNavigate();
+  const { setDatosBasicos } = useEntrevistaStore();
 
   const [fechaActual, setFechaActual] = useState("");
   const [tecnologiaSeleccionada, setTecnologiaSeleccionada] = useState(null);
   const [nivel, setNivel] = useState("");
   const [placeholderExperiencia, setPlaceholderExperiencia] = useState("");
-
   const [nombreEntrevistador, setNombreEntrevistador] = useState("");
   const [nombreCandidato, setNombreCandidato] = useState("");
   const [aniosExperiencia, setAniosExperiencia] = useState("");
@@ -48,11 +43,11 @@ export default function EntrevistaForm() {
     }
   }, [nivel]);
 
-  const seleccionarTecnologia = (nombre) => {
-    setTecnologiaSeleccionada((prev) => (prev === nombre ? null : nombre));
-  };
+  // const seleccionarTecnologia = (nombre) => {
+  //   setTecnologiaSeleccionada((prev) => (prev === nombre ? null : nombre));
+  // };
 
-  const deseleccionarTodo = () => setTecnologiaSeleccionada(null);
+  // const deseleccionarTodo = () => setTecnologiaSeleccionada(null);
 
   const estaFormularioCompleto = () => {
     return (
@@ -66,32 +61,31 @@ export default function EntrevistaForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
-      const filtro = {
-        nivel,
-        tecnologia: tecnologiaSeleccionada
-      };
+      const entrevistador = await buscarUsuarioPorNombreYRol(nombreEntrevistador, "ENTREVISTADOR") ||
+                            await crearUsuario(nombreEntrevistador, "ENTREVISTADOR");
 
-      const resPuesto = await fetch("http://localhost:8080/api/puestos/buscar", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(filtro)
+      const candidato = await crearUsuario(nombreCandidato, "CANDIDATO");
+
+      const puesto = await buscarPuestoPorCategoriaYNivel(tecnologiaSeleccionada, nivel);
+      const idPuesto = puesto.idPuesto;
+
+      setDatosBasicos({
+        idEntrevistador: entrevistador.idUsuario,
+        idCandidato: candidato.idUsuario,
+        idPuesto,
+        fecha: fechaActual,
+        tecnologia: tecnologiaSeleccionada,
+        nivel,
+        nombreEntrevistador,
+        nombreCandidato,
+        experiencia: aniosExperiencia
       });
 
-      if (!resPuesto.ok) {
-        throw new Error("No se encontró un puesto compatible");
-      }
-
-      const puestoId = await resPuesto.json();
-      console.log("ID del puesto:", puestoId);
-
-      navigate(`/preguntas?puestoId=${puestoId}`);
+      navigate("/preguntas");
     } catch (error) {
-      console.error("Error al buscar el puesto:", error);
-      alert("No se pudo encontrar un puesto de trabajo con esos datos.");
+      console.error("Error al procesar la entrevista:", error.message);
+      alert("Hubo un error al procesar los datos.");
     }
   };
 
@@ -107,55 +101,13 @@ export default function EntrevistaForm() {
 
           <div>
             <label className="block text-sm font-semibold mb-2">Tecnologías</label>
-            <div className="grid sm:grid-cols-2 gap-6 max-h-80 overflow-y-auto p-4 bg-white/60 rounded-xl border border-blue-300">
-              {Object.entries(tecnologias).map(([categoria, items]) => (
-                <div key={categoria}>
-                  <p className="font-medium mb-2">{categoria}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {items.map((nombre) => {
-                      const estaSeleccionada = tecnologiaSeleccionada === nombre;
-                      const hayUnaSeleccionada = tecnologiaSeleccionada !== null;
-                      return (
-                        <button
-                          key={nombre}
-                          type="button"
-                          onClick={() => seleccionarTecnologia(nombre)}
-                          className={`px-3 py-1 rounded-full text-sm font-medium border transition shadow-sm ${
-                            estaSeleccionada
-                              ? "bg-blue-600 text-white border-blue-600"
-                              : hayUnaSeleccionada
-                              ? "bg-gray-200 text-gray-500 border-gray-300 cursor-not-allowed"
-                              : "bg-white text-blue-700 border-blue-300 hover:bg-blue-100"
-                          }`}
-                          disabled={hayUnaSeleccionada && !estaSeleccionada}
-                        >
-                          {nombre}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <TechnologySelector
+              selected={tecnologiaSeleccionada}
+              onSelect={(nombre) =>
+                setTecnologiaSeleccionada((prev) => (prev === nombre ? null : nombre))
+              }
+            />
           </div>
-
-          {tecnologiaSeleccionada && (
-            <div className="bg-white/60 p-4 rounded-xl border border-blue-200 shadow">
-              <div className="flex justify-between mb-2 items-center">
-                <p className="text-sm font-semibold">Tecnología seleccionada:</p>
-                <button
-                  type="button"
-                  onClick={deseleccionarTodo}
-                  className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium hover:bg-red-200 transition-colors"
-                >
-                  Deseleccionar
-                </button>
-              </div>
-              <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                {tecnologiaSeleccionada}
-              </span>
-            </div>
-          )}
 
           <SelectBlock
             id="nivel"
@@ -165,7 +117,7 @@ export default function EntrevistaForm() {
             options={[
               { value: "", label: "Selecciona un nivel" },
               { value: "junior", label: "Junior" },
-              { value: "semi", label: "Semi-Senior" },
+              { value: "semi-senior", label: "Semi-Senior" },
               { value: "senior", label: "Senior" }
             ]}
           />
