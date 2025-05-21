@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
 export default function ChatView({ candidato, messages = [], onSend }) {
   const [mensaje, setMensaje] = useState("");
