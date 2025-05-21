@@ -1,16 +1,15 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import TechnologySelector from "../form/TechnologySelector";
 
 export default function ChatCandidateForm({ onSubmit }) {
   const [descripcion, setDescripcion] = useState("");
-  const [puesto, setPuesto] = useState("");
   const [tecnologiaSeleccionada, setTecnologiaSeleccionada] = useState(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!puesto || !descripcion || !tecnologiaSeleccionada) return;
+    if (!descripcion || !tecnologiaSeleccionada) return;
 
-    onSubmit({ puesto, descripcion, tecnologia: tecnologiaSeleccionada });
+    onSubmit({ descripcion, tecnologiaSeleccionada });
   };
 
   return (
