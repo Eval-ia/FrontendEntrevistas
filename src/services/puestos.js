@@ -1,5 +1,5 @@
 const API_BASE = "http://localhost:8080/api/puestos";
-const IA_API_BASE = "http://192.168.50.129";
+const IA_API_BASE = "http://localhost:8000";
 
 export const iniciarChat = async ({ descripcion, tecnologia }, setCandidato, setFase) => {
   const res = await fetch(`${IA_API_BASE}/buscar_similares`, {
