@@ -4,7 +4,10 @@ import Header from "../../components/general/Header";
 import Footer from "../../components/general/Footer";
 import TechnologySelector from "../../components/form/TechnologySelector";
 import { useEntrevistaStore } from "../../stores/entrevistaStore";
-import { buscarUsuarioPorNombreYRol, crearUsuario } from "../../services/usuarios";
+import {
+  buscarUsuarioPorNombreYRol,
+  crearUsuario,
+} from "../../services/usuarios";
 import { buscarPuestoPorCategoriaYNivel } from "../../services/puestos";
 
 export default function EntrevistaForm() {
@@ -32,7 +35,7 @@ export default function EntrevistaForm() {
       case "junior":
         setPlaceholderExperiencia("0 a 2 años");
         break;
-      case "semi":
+      case "semi-senior":
         setPlaceholderExperiencia("2 a 5 años");
         break;
       case "senior":
@@ -42,12 +45,6 @@ export default function EntrevistaForm() {
         setPlaceholderExperiencia("");
     }
   }, [nivel]);
-
-  // const seleccionarTecnologia = (nombre) => {
-  //   setTecnologiaSeleccionada((prev) => (prev === nombre ? null : nombre));
-  // };
-
-  // const deseleccionarTodo = () => setTecnologiaSeleccionada(null);
 
   const estaFormularioCompleto = () => {
     return (
@@ -62,12 +59,17 @@ export default function EntrevistaForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const entrevistador = await buscarUsuarioPorNombreYRol(nombreEntrevistador, "ENTREVISTADOR") ||
-                            await crearUsuario(nombreEntrevistador, "ENTREVISTADOR");
+      const entrevistador =
+        (await buscarUsuarioPorNombreYRol(nombreEntrevistador, "ENTREVISTADOR")) ||
+        (await crearUsuario(nombreEntrevistador, "ENTREVISTADOR"));
 
       const candidato = await crearUsuario(nombreCandidato, "CANDIDATO");
 
-      const puesto = await buscarPuestoPorCategoriaYNivel(tecnologiaSeleccionada, nivel);
+      const puesto = await buscarPuestoPorCategoriaYNivel(
+        tecnologiaSeleccionada,
+        nivel
+      );
+
       const idPuesto = puesto.idPuesto;
 
       setDatosBasicos({
@@ -79,7 +81,7 @@ export default function EntrevistaForm() {
         nivel,
         nombreEntrevistador,
         nombreCandidato,
-        experiencia: aniosExperiencia
+        experiencia: aniosExperiencia,
       });
 
       navigate("/preguntas");
@@ -93,18 +95,34 @@ export default function EntrevistaForm() {
     <div className="bg-gradient-to-br from-blue-50 to-white min-h-screen flex flex-col font-sans text-blue-900">
       <Header />
       <main className="w-full max-w-4xl mx-auto mt-12 p-10 rounded-3xl shadow-2xl backdrop-blur-md bg-white/70 border border-blue-200">
-        <h2 className="text-4xl font-extrabold text-center text-blue-800 mb-10 tracking-tight">Entrevista Técnica</h2>
+        <h2 className="text-4xl font-extrabold text-center text-blue-800 mb-10 tracking-tight">
+          Entrevista Técnica
+        </h2>
 
         <form className="space-y-8" onSubmit={handleSubmit}>
-          <InputBlock id="nombreentrevistador" label="Nombre del entrevistador" value={nombreEntrevistador} onChange={e => setNombreEntrevistador(e.target.value)} />
-          <InputBlock id="nombrecandidato" label="Nombre del candidato" value={nombreCandidato} onChange={e => setNombreCandidato(e.target.value)} />
+          <InputBlock
+            id="nombreentrevistador"
+            label="Nombre del entrevistador"
+            value={nombreEntrevistador}
+            onChange={(e) => setNombreEntrevistador(e.target.value)}
+          />
+          <InputBlock
+            id="nombrecandidato"
+            label="Nombre del candidato"
+            value={nombreCandidato}
+            onChange={(e) => setNombreCandidato(e.target.value)}
+          />
 
           <div>
-            <label className="block text-sm font-semibold mb-2">Tecnologías</label>
+            <label className="block text-sm font-semibold mb-2">
+              Tecnologías
+            </label>
             <TechnologySelector
               selected={tecnologiaSeleccionada}
               onSelect={(nombre) =>
-                setTecnologiaSeleccionada((prev) => (prev === nombre ? null : nombre))
+                setTecnologiaSeleccionada((prev) =>
+                  prev === nombre ? null : nombre
+                )
               }
             />
           </div>
@@ -118,7 +136,7 @@ export default function EntrevistaForm() {
               { value: "", label: "Selecciona un nivel" },
               { value: "junior", label: "Junior" },
               { value: "semi-senior", label: "Semi-Senior" },
-              { value: "senior", label: "Senior" }
+              { value: "senior", label: "Senior" },
             ]}
           />
 
@@ -158,10 +176,20 @@ export default function EntrevistaForm() {
   );
 }
 
-function InputBlock({ id, label, value, onChange, placeholder = "", readOnly = false, extraClass = "" }) {
+function InputBlock({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder = "",
+  readOnly = false,
+  extraClass = "",
+}) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-semibold mb-1">{label}</label>
+      <label htmlFor={id} className="block text-sm font-semibold mb-1">
+        {label}
+      </label>
       <input
         type="text"
         id={id}
@@ -179,7 +207,9 @@ function InputBlock({ id, label, value, onChange, placeholder = "", readOnly = f
 function SelectBlock({ id, label, value, onChange, options }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-semibold mb-1">{label}</label>
+      <label htmlFor={id} className="block text-sm font-semibold mb-1">
+        {label}
+      </label>
       <select
         id={id}
         name={id}
@@ -188,7 +218,9 @@ function SelectBlock({ id, label, value, onChange, options }) {
         className="w-full px-4 py-3 border-2 border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
       >
         {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
         ))}
       </select>
     </div>
