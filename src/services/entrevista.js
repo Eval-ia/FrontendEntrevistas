@@ -28,7 +28,8 @@ export const finalizarEntrevista = async () => {
     respuestas: entrevista.respuestas.map(r => ({
       idPregunta: r.tipo !== "personalizada" ? r.id : null,
       textoPreguntaPersonalizada: r.tipo === "personalizada" ? r.label : null,
-      respuesta: r.value
+      respuesta: r.value,
+      label: r.label
     }))
   };
   console.log(dto);

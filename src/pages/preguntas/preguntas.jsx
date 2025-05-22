@@ -8,7 +8,7 @@ import {
   getPreguntasGenericas,
   getPreguntasPuesto,
   getPreguntasPersonalizadas,
-  crearPreguntaPersonalizada,
+  //crearPreguntaPersonalizada,
   eliminarPreguntaPersonalizada,
 } from "../../services/preguntas";
 
@@ -78,30 +78,38 @@ export default function PreguntasFormulario() {
     navigate("/respuestas");
   };
 
-  const handleAgregarPregunta = async (e) => {
+  const handleAgregarPregunta = (e) => {
     e.preventDefault();
-    if (!nuevaPregunta.trim() || !entrevista?.idEntrevista) return;
+    //if (!nuevaPregunta.trim() || !entrevista?.idEntrevista) return;
     try {
-      const nueva = await crearPreguntaPersonalizada(
-        nuevaPregunta.trim(),
-        entrevista.idEntrevista
-      );
+      const nueva = {
+        idPreguntaPersonalizada: Date.now(),
+        texto: nuevaPregunta.trim()
+      };
       setPreguntasPersonalizadas([...preguntasPersonalizadas, nueva]);
       setNuevaPregunta("");
+      console.log("✅ Se agregó esta pregunta personalizada:", nueva);
+      console.log("📋 Lista actualizada:", [...preguntasPersonalizadas, nueva]);
     } catch {
       alert("No se pudo guardar la pregunta personalizada");
     }
   };
 
-  const handleEliminarPregunta = async (id) => {
-    try {
-      await eliminarPreguntaPersonalizada(id);
-      setPreguntasPersonalizadas(
-        preguntasPersonalizadas.filter((p) => p.idPreguntaPersonalizada !== id)
-      );
-    } catch {
-      alert("No se pudo eliminar la pregunta personalizada");
-    }
+  const handleEliminarPregunta = (id) => {
+    const actualizadas = preguntasPersonalizadas.filter(
+      (p) => p.idPreguntaPersonalizada !== id
+    );
+    setPreguntasPersonalizadas(actualizadas);
+
+    // También podés eliminar la respuesta asociada, si querés
+    setRespuestas((prev) => {
+      const nuevo = { ...prev };
+      delete nuevo[id];
+      return nuevo;
+    });
+
+    console.log("❌ Pregunta eliminada:", id);
+    console.log("📋 Lista actualizada:", [...preguntasPersonalizadas, nuevo]);
   };
 
   return (
@@ -149,10 +157,7 @@ export default function PreguntasFormulario() {
             <h2 className="text-xl font-semibold mb-4 text-blue-700">
               Añadir pregunta personalizada
             </h2>
-            <form
-              onSubmit={handleAgregarPregunta}
-              className="flex gap-4 items-center"
-            >
+            <div className="flex gap-4 items-center">
               <input
                 type="text"
                 value={nuevaPregunta}
@@ -161,12 +166,13 @@ export default function PreguntasFormulario() {
                 className="w-full px-4 py-3 border-2 border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 transition"
               />
               <button
-                type="submit"
+                type="button"
+                onClick={handleAgregarPregunta}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow-xl font-semibold"
               >
                 Añadir
               </button>
-            </form>
+            </div>
           </div>
         </div>
       </main>
