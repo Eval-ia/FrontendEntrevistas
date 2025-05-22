@@ -1,59 +1,40 @@
 import { useState } from "react";
 import ChatCandidateForm from "../../components/chat/ChatCandidateForm";
-import ChatView from "../../components/chat/ChatView";
+import CandidateList from "../../components/chat/CandidateList";
 import Header from "../../components/general/Header";
 import Footer from "../../components/general/Footer";
-import { manejarEnvioMensaje } from "../../utils/chat";
-import { iniciarChat } from "../../services/puestos";
+import { buscarCandidatos } from "../../services/usuarios";
 
 export default function ChatPage() {
   const [fase, setFase] = useState("form");
-  const [candidato, setCandidato] = useState(null);
-  const [mensajes, setMensajes] = useState([]);
+  const [candidatos, setCandidatos] = useState([]);
+  const [mensajeSistema, setMensajeSistema] = useState("");
 
   const iniciar = async (datos) => {
-    // Añadir la descripción como mensaje del usuario
-    setMensajes([{ emisor: "yo", texto: datos.descripcion }]);
+    setMensajeSistema(`Buscando candidatos para: "${datos.descripcion}"...`);
 
-    // Llamar al backend para obtener candidato
-    const candidato = await iniciarChat(datos);
-    setCandidato(candidato);
+    const lista = await buscarCandidatos(datos);
+    setCandidatos(lista);
+    console.log("Candidatos encontrados:", lista);
 
-    // Simular respuesta inicial del sistema
-    setMensajes((prev) => [
-      ...prev,
-      {
-        emisor: "sistema",
-        texto: `He encontrado un candidato que podría encajar. ¿Quieres hablar con él?`
-      }
-    ]);
-
-    setFase("chat");
-  };
-
-  const enviarMensaje = (texto) => {
-    setMensajes((prev) => [...prev, { emisor: "yo", texto }]);
-    setTimeout(() => {
-      setMensajes((prev) => [
-        ...prev,
-        { emisor: "candidato", texto: "Gracias por tu mensaje, estaré encantado de responder." }
-      ]);
-    }, 700);
+    setMensajeSistema(`Estos son los 10 mejores candidatos para la descripción recibida.`);
+    setFase("resultados");
   };
 
   return (
     <div className="min-h-screen bg-blue-50 flex flex-col font-sans text-blue-900">
       <Header />
       <main className="flex-1 flex flex-col items-center">
-        <div className="w-full max-w-2xl flex flex-col flex-1 px-4 pt-6 pb-2">
-          {fase === "form" ? (
-            <ChatCandidateForm onSubmit={iniciar} />
-          ) : (
-            <ChatView
-              candidato={candidato}
-              messages={mensajes}
-              onSend={enviarMensaje}
-            />
+        <div className="w-full max-w-4xl flex flex-col flex-1 px-4 pt-6 pb-2">
+          {fase === "form" && <ChatCandidateForm onSubmit={iniciar} />}
+
+          {fase === "resultados" && (
+            <>
+              <div className="mb-6 text-center">
+                <p className="text-sm italic text-gray-600">{mensajeSistema}</p>
+              </div>
+              <CandidateList candidatos={candidatos} />
+            </>
           )}
         </div>
       </main>
