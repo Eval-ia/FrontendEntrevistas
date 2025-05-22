@@ -8,12 +8,7 @@ export default function Header() {
   const limpiarPreguntas = usePreguntasStore((state) => state.limpiarPreguntas);
   const entrevista = useEntrevistaStore((state) => state.entrevista);
 
-  useEffect(() => {
-    console.log("localStorage");
-    console.log(localStorage);
-    console.log("entrevista");
-    console.log(entrevista);
-  }, []);
+  
 
   const handleClick = () => {
     limpiarPreguntas(); // solo limpia memoria

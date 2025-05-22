@@ -5,6 +5,7 @@ import Footer from "../../components/general/Footer";
 import { useEntrevistaStore } from "../../stores/entrevistaStore";
 import { guardarRespuestas } from "../../services/respuestas";
 import { finalizarEntrevista } from "../../services/entrevista";
+import { crearPreguntaPersonalizada } from "../../services/preguntas";
 
 export default function Respuestas() {
   const navigate = useNavigate();
@@ -18,25 +19,66 @@ export default function Respuestas() {
   const handleVolverAPreguntas = () => {
     navigate("/preguntas");
   };
-
+  const [guardando, setGuardando] = useState(false);
   // Finalizar la entrevista y guardar respuestas
   const handleFinalizarEntrevista = async () => {
-  try {
-    setMensajeError(null);
+    if (guardando) return; // Previene ejecución múltiple
+    setGuardando(true);
+    try {
+      setMensajeError(null);
 
-    // Llama directamente al servicio que usa Zustand internamente
-    await finalizarEntrevista();
+      const idEntrevistaCreada = await finalizarEntrevista();
 
-    // Mostrar el resumen actual desde Zustand directamente
-    setResumenEntrevistaJSON(entrevista);
-    setMostrarResumenJSON(true);
+      const respuestasDePreguntasPersonalizadas = entrevista.respuestas.filter(
+        (respuesta) => respuesta.tipo === "personalizada"
+      );
 
-    limpiarEntrevista(); // limpiar Zustand y localStorage si lo tienes así configurado
-  } catch (error) {
-    setMensajeError("No se pudieron guardar las respuestas.");
-  }
-};
+      const preguntasPersonalizadasGuardadas = await Promise.all(
+        respuestasDePreguntasPersonalizadas
+          .filter(
+            (respuesta, index, self) =>
+              index === self.findIndex((r) => r.label === respuesta.label)
+          )
+          .map((respuesta) =>
+            crearPreguntaPersonalizada(respuesta.label, idEntrevistaCreada)
+          )
+      );
+      console.log(preguntasPersonalizadasGuardadas);
 
+      const respuestasConIdsCorrectos = entrevista.respuestas.map(
+        (respuesta) => {
+          if (respuesta.tipo === "personalizada") {
+            const preguntaCorrespondiente =
+              preguntasPersonalizadasGuardadas.find(
+                (p) => p.texto === respuesta.label
+              );
+            return {
+              ...respuesta,
+              id: preguntaCorrespondiente?.idPreguntaPersonalizada || null,
+            };
+          }
+          return respuesta;
+        }
+      );
+
+      await guardarRespuestas(respuestasConIdsCorrectos, idEntrevistaCreada);
+
+      setResumenEntrevistaJSON({
+        ...entrevista,
+        idEntrevista: idEntrevistaCreada,
+      });
+      setMostrarResumenJSON(true);
+      limpiarEntrevista();
+    } catch (error) {
+      console.error(error);
+      setMensajeError("No se pudieron guardar las respuestas.");
+    } finally {
+      setGuardando(false); // Permite nuevo intento si falla
+    }
+  };
+  console.log(entrevista);
+
+  // console.log(entrevista.respuestas);
 
   return (
     <div className="bg-gradient-to-br from-blue-50 to-white min-h-screen flex flex-col font-sans text-blue-900">
@@ -48,9 +90,18 @@ export default function Respuestas() {
           </h1>
           <ul className="space-y-4">
             {entrevista.respuestas.map((respuesta, indice) => (
-              <li key={indice} className="bg-blue-50 border border-blue-200 rounded-xl p-4 shadow">
-                <p className="font-semibold text-blue-800">{respuesta.label}</p>
-                <p className="text-blue-600">{respuesta.value || "Sin respuesta"}</p>
+              <li
+                key={indice}
+                className="bg-blue-50 border border-blue-200 rounded-xl p-4 shadow"
+              >
+                <p className="font-semibold text-blue-800">
+                  {respuesta.label ||
+                    respuesta.textoPreguntaPersonalizada ||
+                    "Sin pregunta"}
+                </p>
+                <p className="text-blue-600">
+                  {respuesta.value || respuesta.respuesta || "Sin respuesta"}
+                </p>
               </li>
             ))}
           </ul>
@@ -63,15 +114,20 @@ export default function Respuestas() {
             </button>
             <button
               onClick={handleFinalizarEntrevista}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl shadow-xl font-semibold transition-transform transform hover:scale-105"
+              disabled={guardando}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl shadow-xl font-semibold transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Finalizar
             </button>
           </div>
-          {mensajeError && <p className="text-red-600 mt-4 text-center">{mensajeError}</p>}
+          {mensajeError && (
+            <p className="text-red-600 mt-4 text-center">{mensajeError}</p>
+          )}
           {mostrarResumenJSON && resumenEntrevistaJSON && (
             <div className="mt-12 p-6 bg-gray-100 border border-gray-300 rounded-xl">
-              <h3 className="text-lg font-semibold mb-2 text-gray-800">JSON generado:</h3>
+              <h3 className="text-lg font-semibold mb-2 text-gray-800">
+                JSON generado:
+              </h3>
               <pre className="text-sm overflow-x-auto text-gray-700 whitespace-pre-wrap">
                 {JSON.stringify(resumenEntrevistaJSON, null, 2)}
               </pre>

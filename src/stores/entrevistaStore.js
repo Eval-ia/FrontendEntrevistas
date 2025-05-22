@@ -8,46 +8,74 @@ export const useEntrevistaStore = create(
         idEntrevistador: null,
         idCandidato: null,
         idPuesto: null,
-        respuestas: []
+        respuestas: [],
       },
+
       setDatosBasicos: (datos) =>
         set((state) => ({
           entrevista: {
             ...state.entrevista,
-            ...datos
-          }
+            ...datos,
+          },
         })),
-      agregarRespuesta: (respuesta) =>
+
+      agregarRespuesta: (nueva) =>
+        set((state) => {
+          const yaExiste = state.entrevista.respuestas.find(
+            (r) => r.id === nueva.id
+          );
+          if (yaExiste) {
+            return {
+              entrevista: {
+                ...state.entrevista,
+                respuestas: state.entrevista.respuestas.map((r) =>
+                  r.id === nueva.id ? nueva : r
+                ),
+              },
+            };
+          }
+          return {
+            entrevista: {
+              ...state.entrevista,
+              respuestas: [...state.entrevista.respuestas, nueva],
+            },
+          };
+        }),
+
+      // ✅ NUEVO: sobrescribe todas las respuestas a la vez
+      setRespuestas: (respuestas) =>
         set((state) => ({
           entrevista: {
             ...state.entrevista,
-            respuestas: [...state.entrevista.respuestas, respuesta]
-          }
+            respuestas,
+          },
         })),
+
       limpiarEntrevista: () =>
         set({
           entrevista: {
             idEntrevistador: null,
             idCandidato: null,
             idPuesto: null,
-            respuestas: []
-          }
+            respuestas: [],
+          },
         }),
+
       resetEntrevistaTotal: () => {
         set({
           entrevista: {
             idEntrevistador: null,
             idCandidato: null,
             idPuesto: null,
-            respuestas: []
-          }
+            respuestas: [],
+          },
         });
         localStorage.removeItem("entrevista-storage");
-      }
+      },
     }),
     {
       name: "entrevista-storage",
-      partialize: (state) => ({ entrevista: state.entrevista })
+      partialize: (state) => ({ entrevista: state.entrevista }),
     }
   )
 );

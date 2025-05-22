@@ -20,14 +20,23 @@ export async function getPreguntasPersonalizadas(entrevistaId) {
 }
 
 export async function crearPreguntaPersonalizada(texto, entrevistaId) {
-  const resp = await fetch(`${API_BASE}/personalizada`, {
+  const res = await fetch(`${API_BASE}/personalizada`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ texto, entrevistaId })
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      texto,
+      entrevistaId, // 👈 este nombre debe coincidir con el del backend
+    }),
   });
-  if (!resp.ok) throw new Error("Error al crear pregunta personalizada");
-  return resp.json();
+
+  if (!res.ok) throw new Error("Error al crear la pregunta");
+
+  return await res.json(); // devuelve la pregunta creada
 }
+
+
 
 export async function eliminarPreguntaPersonalizada(idPreguntaPersonalizada) {
   const resp = await fetch(`${API_BASE}/personalizada/${idPreguntaPersonalizada}`, {

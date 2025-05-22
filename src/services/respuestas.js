@@ -1,23 +1,23 @@
 const API_BASE = "http://localhost:8080/api/respuestas";
 
 export async function guardarRespuestas(respuestas, entrevistaId) {
-  const payload = respuestas.map((r) => {
-    const respuesta = {
-      entrevista: { idEntrevista: entrevistaId },
-      textoRespuesta: r.value
+   const payload = respuestas.map((r) => {
+    const base = {
+      entrevistaId: entrevistaId,
+      textoRespuesta: r.value,
     };
     if (r.tipo === "personalizada") {
-      respuesta.preguntaPersonalizada = { idPreguntaPersonalizada: r.id };
+      base.idPreguntaPersonalizada = r.id;
     } else {
-      respuesta.pregunta = { idPregunta: r.id };
+      base.idPregunta = r.id;
     }
-    return respuesta;
+    return base;
   });
 
   const resp = await fetch(`${API_BASE}/guardar`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   });
 
   if (!resp.ok) throw new Error("Error al guardar respuestas");

@@ -8,7 +8,6 @@ import {
   getPreguntasGenericas,
   getPreguntasPuesto,
   getPreguntasPersonalizadas,
-  crearPreguntaPersonalizada,
   eliminarPreguntaPersonalizada,
 } from "../../services/preguntas";
 
@@ -17,7 +16,7 @@ export default function PreguntasFormulario() {
 
   // Obtenemos datos desde el store
   const entrevista = useEntrevistaStore((state) => state.entrevista);
-  const { agregarRespuesta } = useEntrevistaStore();
+  const { setRespuestas: setRespuestasStore } = useEntrevistaStore();
 
   const {
     preguntasGenericas,
@@ -30,6 +29,15 @@ export default function PreguntasFormulario() {
 
   const [respuestas, setRespuestas] = useState({});
   const [nuevaPregunta, setNuevaPregunta] = useState("");
+  useEffect(() => {
+    if (entrevista?.respuestas?.length > 0) {
+      const respuestasIniciales = {};
+      entrevista.respuestas.forEach((r) => {
+        respuestasIniciales[r.id] = r.value;
+      });
+      setRespuestas(respuestasIniciales);
+    }
+  }, []);
 
   useEffect(() => {
     if (!entrevista) return;
@@ -41,7 +49,6 @@ export default function PreguntasFormulario() {
     getPreguntasGenericas().then(setPreguntasGenericas);
 
     if (idPuesto) getPreguntasPuesto(idPuesto).then(setPreguntasPuesto);
-    console.log(preguntasPuesto);
     if (idEntrevista)
       getPreguntasPersonalizadas(idEntrevista).then(setPreguntasPersonalizadas);
   }, [entrevista]);
@@ -67,30 +74,37 @@ export default function PreguntasFormulario() {
         value: respuestas[p.idPregunta] || "",
       })),
       ...preguntasPersonalizadas.map((p) => ({
-        id: p.idPreguntaPersonalizada,
+        id: p.idPreguntaPersonalizada ?? null,
         label: p.texto,
         tipo: "personalizada",
-        value: respuestas[p.idPreguntaPersonalizada] || "",
+        value: respuestas[p.texto] || "",
       })),
     ];
+    console.log(entrevista);
 
-    respuestasPreparadas.forEach(agregarRespuesta);
+    setRespuestasStore(respuestasPreparadas);
     navigate("/respuestas");
   };
 
-  const handleAgregarPregunta = async (e) => {
+  const handleAgregarPregunta = (e) => {
     e.preventDefault();
-    if (!nuevaPregunta.trim() || !entrevista?.idEntrevista) return;
-    try {
-      const nueva = await crearPreguntaPersonalizada(
-        nuevaPregunta.trim(),
-        entrevista.idEntrevista
-      );
-      setPreguntasPersonalizadas([...preguntasPersonalizadas, nueva]);
-      setNuevaPregunta("");
-    } catch {
-      alert("No se pudo guardar la pregunta personalizada");
+
+    const texto = nuevaPregunta.trim();
+    if (!texto) return;
+
+    // ✅ Validación para evitar preguntas duplicadas por texto
+    if (preguntasPersonalizadas.some((p) => p.texto === texto)) {
+      alert("Esa pregunta ya existe");
+      return;
     }
+
+    const nueva = {
+      texto, // para mostrar en pantalla
+      respuesta: "", // inicializada vacía
+    };
+
+    setPreguntasPersonalizadas([...preguntasPersonalizadas, nueva]);
+    setNuevaPregunta("");
   };
 
   const handleEliminarPregunta = async (id) => {
@@ -190,7 +204,10 @@ function PreguntaSection({
       <div className="grid gap-6">
         {preguntas.map((p) => {
           const id =
-            tipo === "personalizada" ? p.idPreguntaPersonalizada : p.idPregunta;
+            tipo === "personalizada"
+              ? p.idPreguntaPersonalizada || p.texto
+              : p.idPregunta;
+
           return (
             <div key={id} className="relative">
               <label
