@@ -9,75 +9,83 @@ import {
   getPreguntasPuesto,
   getPreguntasPersonalizadas,
   crearPreguntaPersonalizada,
-  eliminarPreguntaPersonalizada
+  eliminarPreguntaPersonalizada,
 } from "../../services/preguntas";
 
-export default function PreguntasFormulario({ puestoId, entrevistaId, idEntrevistador, idCandidato }) {
+export default function PreguntasFormulario() {
   const navigate = useNavigate();
- const entrevista = useEntrevistaStore((state) => state.entrevista);
- console.log(entrevista);
- 
-  // Stores
+
+  // Obtenemos datos desde el store
+  const entrevista = useEntrevistaStore((state) => state.entrevista);
   const { agregarRespuesta } = useEntrevistaStore();
+
   const {
-    preguntasGenericas, setPreguntasGenericas,
-    preguntasPuesto, setPreguntasPuesto,
-    preguntasPersonalizadas, setPreguntasPersonalizadas
+    preguntasGenericas,
+    setPreguntasGenericas,
+    preguntasPuesto,
+    setPreguntasPuesto,
+    preguntasPersonalizadas,
+    setPreguntasPersonalizadas,
   } = usePreguntasStore();
 
   const [respuestas, setRespuestas] = useState({});
   const [nuevaPregunta, setNuevaPregunta] = useState("");
 
-  // Cargar preguntas al montar
   useEffect(() => {
+    if (!entrevista) return;
+
+    const { idPuesto, idEntrevista } = entrevista;
+
+    console.log(idPuesto);
+
     getPreguntasGenericas().then(setPreguntasGenericas);
-    if (puestoId) getPreguntasPuesto(puestoId).then(setPreguntasPuesto);
-    if (entrevistaId) getPreguntasPersonalizadas(entrevistaId).then(setPreguntasPersonalizadas);
-  }, [puestoId, entrevistaId]);
 
-  // Guardar respuesta
+    if (idPuesto) getPreguntasPuesto(idPuesto).then(setPreguntasPuesto);
+    console.log(preguntasPuesto);
+    if (idEntrevista)
+      getPreguntasPersonalizadas(idEntrevista).then(setPreguntasPersonalizadas);
+  }, [entrevista]);
+
   const handleRespuesta = (id, value) => {
-  setRespuestas((prev) => ({ ...prev, [id]: value }));
-};
+    setRespuestas((prev) => ({ ...prev, [id]: value }));
+  };
 
-
-  // Preparar y enviar respuestas
   const handleSubmit = (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  const respuestasPreparadas = [
-    ...preguntasGenericas.map((p) => ({
-      id: p.idPregunta,
-      label: p.texto,
-      tipo: "generica",
-      value: respuestas[p.idPregunta] || ""
-    })),
-    ...preguntasPuesto.map((p) => ({
-      id: p.idPregunta,
-      label: p.texto,
-      tipo: "especifica",
-      value: respuestas[p.idPregunta] || ""
-    })),
-    ...preguntasPersonalizadas.map((p) => ({
-      id: p.idPreguntaPersonalizada,
-      label: p.texto,
-      tipo: "personalizada",
-      value: respuestas[p.idPreguntaPersonalizada] || ""
-    })),
-  ];
+    const respuestasPreparadas = [
+      ...preguntasGenericas.map((p) => ({
+        id: p.idPregunta,
+        label: p.texto,
+        tipo: "generica",
+        value: respuestas[p.idPregunta] || "",
+      })),
+      ...preguntasPuesto.map((p) => ({
+        id: p.idPregunta,
+        label: p.texto,
+        tipo: "especifica",
+        value: respuestas[p.idPregunta] || "",
+      })),
+      ...preguntasPersonalizadas.map((p) => ({
+        id: p.idPreguntaPersonalizada,
+        label: p.texto,
+        tipo: "personalizada",
+        value: respuestas[p.idPreguntaPersonalizada] || "",
+      })),
+    ];
 
-  respuestasPreparadas.forEach(agregarRespuesta);
+    respuestasPreparadas.forEach(agregarRespuesta);
+    navigate("/respuestas");
+  };
 
-  navigate("/respuestas");
-};
-
-
-  // Crear pregunta personalizada
   const handleAgregarPregunta = async (e) => {
     e.preventDefault();
-    if (!nuevaPregunta.trim() || !entrevistaId) return;
+    if (!nuevaPregunta.trim() || !entrevista?.idEntrevista) return;
     try {
-      const nueva = await crearPreguntaPersonalizada(nuevaPregunta.trim(), entrevistaId);
+      const nueva = await crearPreguntaPersonalizada(
+        nuevaPregunta.trim(),
+        entrevista.idEntrevista
+      );
       setPreguntasPersonalizadas([...preguntasPersonalizadas, nueva]);
       setNuevaPregunta("");
     } catch {
@@ -85,11 +93,12 @@ export default function PreguntasFormulario({ puestoId, entrevistaId, idEntrevis
     }
   };
 
-  // Eliminar pregunta personalizada
   const handleEliminarPregunta = async (id) => {
     try {
       await eliminarPreguntaPersonalizada(id);
-      setPreguntasPersonalizadas(preguntasPersonalizadas.filter(p => p.idPreguntaPersonalizada !== id));
+      setPreguntasPersonalizadas(
+        preguntasPersonalizadas.filter((p) => p.idPreguntaPersonalizada !== id)
+      );
     } catch {
       alert("No se pudo eliminar la pregunta personalizada");
     }
@@ -137,8 +146,13 @@ export default function PreguntasFormulario({ puestoId, entrevistaId, idEntrevis
             </div>
           </form>
           <div className="mt-14 pt-6 border-t border-blue-200">
-            <h2 className="text-xl font-semibold mb-4 text-blue-700">Añadir pregunta personalizada</h2>
-            <form onSubmit={handleAgregarPregunta} className="flex gap-4 items-center">
+            <h2 className="text-xl font-semibold mb-4 text-blue-700">
+              Añadir pregunta personalizada
+            </h2>
+            <form
+              onSubmit={handleAgregarPregunta}
+              className="flex gap-4 items-center"
+            >
               <input
                 type="text"
                 value={nuevaPregunta}
@@ -161,7 +175,6 @@ export default function PreguntasFormulario({ puestoId, entrevistaId, idEntrevis
   );
 }
 
-// Componente para sección de preguntas
 function PreguntaSection({
   titulo,
   preguntas,
@@ -169,17 +182,21 @@ function PreguntaSection({
   respuestas,
   onChange,
   esPersonalizada = false,
-  onEliminar
+  onEliminar,
 }) {
   return (
     <section>
       <h2 className="text-2xl font-semibold mb-6 text-blue-700">{titulo}</h2>
       <div className="grid gap-6">
         {preguntas.map((p) => {
-          const id = tipo === "personalizada" ? p.idPreguntaPersonalizada : p.idPregunta;
+          const id =
+            tipo === "personalizada" ? p.idPreguntaPersonalizada : p.idPregunta;
           return (
             <div key={id} className="relative">
-              <label htmlFor={id} className="block text-sm font-semibold text-blue-800 mb-2">
+              <label
+                htmlFor={id}
+                className="block text-sm font-semibold text-blue-800 mb-2"
+              >
                 {p.texto}
               </label>
               <input
@@ -187,7 +204,7 @@ function PreguntaSection({
                 id={id}
                 name={id}
                 value={respuestas[id] || ""}
-                onChange={(e) => onChange(id, e.target.value, tipo, p.texto)}
+                onChange={(e) => onChange(id, e.target.value)}
                 className="w-full px-4 py-3 border-2 border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
               />
               {esPersonalizada && (
