@@ -1,4 +1,5 @@
 const API_BASE = "http://localhost:8080/api/usuarios";
+// const IA_API_BASE = "http://localhost:8000/api";
 
 // Buscar usuario por nombre y rol
 export const buscarUsuarioPorNombreYRol = async (nombre, rol) => {
@@ -128,13 +129,18 @@ export const buscarCandidatos = async ({ descripcion, tecnologia }) => {
     body: JSON.stringify(ids),
   });
 
-  console.log("Respuesta de mi propio servidor:", res);
-
   if (!res.ok) throw new Error("Error al obtener usuarios");
 
   const usuarios = await res.json();
   console.log("Usuarios encontrados:", usuarios);
 
-  // Devolver directamente los datos del backend (nombre, email, fortalezas, debilidades, etc.)
-  return usuarios;
+  // Crear un mapa para acceder rápidamente por ID
+  const usuariosMap = new Map(usuarios.map(u => [u.id, u]));
+
+  // Devolverlos en el mismo orden de `candidatos`
+  const usuariosOrdenados = candidatos.map(c => usuariosMap.get(Number(c.candidato_id)));
+
+  console.log("Usuarios reordenados:", usuariosOrdenados);
+
+  return usuariosOrdenados;
 };
