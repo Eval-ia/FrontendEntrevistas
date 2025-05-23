@@ -1,5 +1,4 @@
 const API_BASE = "http://localhost:8080/api/puestos";
-// const IA_API_BASE = "http://localhost:8000";
 
 export const buscarPuestoPorCategoriaYNivel = async (categoria, nivel) => {
   const res = await fetch(

@@ -17,7 +17,7 @@ export default function ChatPage() {
     setCandidatos(lista);
     console.log("Candidatos encontrados:", lista);
 
-    setMensajeSistema(`Estos son los 10 mejores candidatos para la descripción recibida.`);
+    setMensajeSistema(`Estos son los mejores candidatos para el puesto descrito.`);
     setFase("resultados");
   };
 
