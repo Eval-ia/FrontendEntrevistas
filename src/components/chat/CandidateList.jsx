@@ -3,7 +3,7 @@ export default function CandidateList({ candidatos }) {
     <div className="space-y-4">
       {candidatos.map((candidato) => (
         <div
-          key={candidato.id}
+          key={candidato.candidato_id}
           className="bg-white p-6 rounded-xl shadow border border-blue-100 hover:shadow-md transition"
         >
           <div className="flex items-start gap-4">
@@ -15,7 +15,7 @@ export default function CandidateList({ candidatos }) {
             {/* Datos del usuario */}
             <div className="flex-1 space-y-1">
               <h3 className="text-lg font-bold text-blue-800">{candidato.nombre}</h3>
-              <p className="text-sm text-gray-600">Correo de contacto: {candidato.email}</p>
+              {/* <p className="text-sm text-gray-600">Correo de contacto: {candidato.email}</p> */}
 
               {candidato.fortalezas && (
                 <p className="text-sm">
